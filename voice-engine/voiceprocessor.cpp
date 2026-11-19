@@ -8,34 +8,17 @@ void VoiceProcessor::prepare(double sampleRate)
     gainedInput_.resize(8192);
     stretch_.presetCheaper(1, rate, true);
     stretch_.setFormantBase(0.0F);
-    activePreset_ = static_cast<Preset>(requestedPreset_.load(std::memory_order_relaxed));
-    applyPreset(activePreset_);
+    activePitch_ = requestedPitch_.load(std::memory_order_relaxed);
+    activeFormant_ = requestedFormant_.load(std::memory_order_relaxed);
+    stretch_.setTransposeSemitones(activePitch_);
+    stretch_.setFormantSemitones(activeFormant_, true);
     prepared_ = true;
 }
 
-void VoiceProcessor::setPreset(Preset preset)
+void VoiceProcessor::setVoiceTone(float pitchSemitones, float formantSemitones)
 {
-    requestedPreset_.store(static_cast<int>(preset), std::memory_order_relaxed);
-}
-
-void VoiceProcessor::applyPreset(Preset preset)
-{
-    switch (preset) {
-    case Preset::Female:
-        // A gentler shift keeps the female-style preset from sounding unnaturally high.
-        stretch_.setTransposeSemitones(2.0F);
-        stretch_.setFormantSemitones(1.0F, true);
-        break;
-    case Preset::Male:
-        stretch_.setTransposeSemitones(-3.0F);
-        stretch_.setFormantSemitones(-1.5F, true);
-        break;
-    case Preset::Neutral:
-    default:
-        stretch_.setTransposeSemitones(0.0F);
-        stretch_.setFormantSemitones(0.0F);
-        break;
-    }
+    requestedPitch_.store(std::clamp(pitchSemitones, -12.0F, 12.0F), std::memory_order_relaxed);
+    requestedFormant_.store(std::clamp(formantSemitones, -6.0F, 6.0F), std::memory_order_relaxed);
 }
 
 void VoiceProcessor::process(const float *input, float *output, unsigned long frameCount, float inputGain)
@@ -46,10 +29,15 @@ void VoiceProcessor::process(const float *input, float *output, unsigned long fr
         return;
     }
 
-    const auto requested = static_cast<Preset>(requestedPreset_.load(std::memory_order_relaxed));
-    if (requested != activePreset_) {
-        applyPreset(requested);
-        activePreset_ = requested;
+    const float requestedPitch = requestedPitch_.load(std::memory_order_relaxed);
+    const float requestedFormant = requestedFormant_.load(std::memory_order_relaxed);
+    if (requestedPitch != activePitch_) {
+        stretch_.setTransposeSemitones(requestedPitch);
+        activePitch_ = requestedPitch;
+    }
+    if (requestedFormant != activeFormant_) {
+        stretch_.setFormantSemitones(requestedFormant, true);
+        activeFormant_ = requestedFormant;
     }
 
     if (frameCount > gainedInput_.size()) gainedInput_.resize(frameCount);
