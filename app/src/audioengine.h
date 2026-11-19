@@ -32,6 +32,9 @@ public:
     std::uint64_t droppedRecordingSamples() const;
     std::uint64_t acceptedRecordingSamples() const;
     float recordingPeakLevel() const;
+    std::uint64_t virtualMicDroppedSamples() const;
+    std::uint64_t virtualMicUnderflowSamples() const;
+    bool isVirtualMicActive() const;
 
 private:
     static int virtualMicCallback(const void *input, void *output, unsigned long frameCount,
