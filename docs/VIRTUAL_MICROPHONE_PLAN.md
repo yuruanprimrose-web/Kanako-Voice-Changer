@@ -28,13 +28,13 @@ Advantages:
 - The Kanako app can direct its processed output to the virtual cable's playback endpoint; other applications can select the corresponding recording endpoint.
 
 Constraints:
-- The package must be distributed AS IS under VB-Audio's terms; do not modify, rebrand, or imply ownership.
+- The official VB-Audio page currently lists VBCABLE Driver Pack 46 (November 2026) for Windows 32/64-bit and ARM64. Install by extracting the package and running its setup program as Administrator; VB-Audio instructs users to reboot after installation and uninstallation. Re-check the official download page immediately before release because packages can change. The package must be distributed AS IS under VB-Audio's terms; do not modify, rebrand, or imply ownership.
 - Donationware/professional-use licensing must be resolved before shipping it with Kanako.
 - Installation requires elevated driver installation privileges and a robust rollback/uninstall path.
 - A simple output-device switch would route audio away from the user's speakers. Simultaneous virtual-mic and speaker monitoring needs an explicit output fan-out design and tests.
 - The actual package version, signing status, installer behavior, and current terms must be rechecked before implementation/distribution.
 
-Official licensing reference: https://vb-audio.com/Services/licensing.htm
+Official product/download reference: https://vb-audio.com/Cable/\nOfficial licensing reference: https://vb-audio.com/Services/licensing.htm
 
 ### Option B — Build a Kanako-owned Windows virtual audio driver using Microsoft's SYSVAD sample as a reference
 
@@ -66,12 +66,12 @@ If its terms or product requirements do not fit, stop the VB-CABLE route and sco
 
 ## Required engineering work before any compatibility claim
 
-1. Inspect the exact virtual cable package and confirm architecture, supported Windows versions, endpoint names, signatures, and installer/uninstaller commands.
-2. Design a routing layer that sends the processed mono signal to the virtual microphone endpoint and, optionally, to the user's selected speakers at the same time.
-3. Avoid blocking, allocations, Qt calls, or file/network operations in real-time audio callbacks. Use bounded, thread-safe buffering between the processing callback and any additional output stream.
+1. Confirm the official VB-CABLE Pack 46 package's architecture, supported Windows versions, endpoint names, digital signature, and installer/uninstaller commands on a clean target PC.
+2. Implemented prototype: a second PortAudio output stream sends the processed mono signal to the selected VB-CABLE playback endpoint while the original stream continues to the selected physical speakers. A bounded SPSC ring buffer decouples the callbacks.
+3. Keep the audio callbacks free of blocking, allocations, Qt calls, and file/network operations. CI has a synthetic buffer test; long-duration clock-drift, overflow, underflow, and real-device behavior still need measurement.
 4. Handle device disappearance, app shutdown, driver removal, sample-rate mismatch, and failed stream startup without crashing or leaving devices stuck.
-5. Add automated tests for routing/buffer behavior and manual tests on a real Windows machine.
-6. Verify that Discord, Zoom, and OBS can select the endpoint and receive intelligible processed speech. Test YouTube/Facebook only through their actual supported streaming workflows; they may consume OBS or browser audio inputs differently.
+5. Added automated unit tests for buffer order, capacity, dropped samples, underflow silence, and reset. Manual tests on a real Windows machine remain required.
+6. Verify that Discord, Zoom, and OBS can select CABLE Output and receive intelligible processed speech. Test YouTube/Facebook only through their actual supported streaming workflows; they may consume OBS or browser audio inputs differently.
 7. Test install, upgrade, repair, rollback, and uninstall with administrator privileges and a clean Windows environment.
 
 ## Safety and release gates
