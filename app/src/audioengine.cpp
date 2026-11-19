@@ -9,7 +9,8 @@ AudioEngine::~AudioEngine()
     stop();
 }
 
-bool AudioEngine::start(PaDeviceIndex inputDevice, PaDeviceIndex outputDevice, QString *errorMessage)
+bool AudioEngine::start(PaDeviceIndex inputDevice, PaDeviceIndex outputDevice,
+                        PaDeviceIndex virtualMicDevice, QString *errorMessage)
 {
     stop();
     inputLevel_.store(0.0F, std::memory_order_relaxed);
@@ -66,27 +67,90 @@ bool AudioEngine::start(PaDeviceIndex inputDevice, PaDeviceIndex outputDevice, Q
 
     sampleRate_ = openedSampleRate;
     processor_.prepare(openedSampleRate);
+
+    if (virtualMicDevice != paNoDevice) {
+        const PaDeviceInfo *virtualInfo = Pa_GetDeviceInfo(virtualMicDevice);
+        if (virtualInfo == nullptr || virtualInfo->maxOutputChannels < 1) {
+            if (errorMessage) *errorMessage = "The selected virtual microphone playback endpoint is unavailable. Refresh audio devices and try again.";
+            Pa_CloseStream(stream_);
+            stream_ = nullptr;
+            return false;
+        }
+
+        PaStreamParameters virtualOutput{};
+        virtualOutput.device = virtualMicDevice;
+        virtualOutput.channelCount = 1;
+        virtualOutput.sampleFormat = paFloat32;
+        virtualOutput.suggestedLatency = virtualInfo->defaultLowOutputLatency;
+        virtualOutput.hostApiSpecificStreamInfo = nullptr;
+
+        const PaError virtualFormat = Pa_IsFormatSupported(nullptr, &virtualOutput, sampleRate_);
+        if (virtualFormat != paFormatIsSupported) {
+            if (errorMessage) *errorMessage = QString("The virtual microphone endpoint does not support %1 Hz audio: %2")
+                .arg(static_cast<int>(sampleRate_)).arg(Pa_GetErrorText(virtualFormat));
+            Pa_CloseStream(stream_);
+            stream_ = nullptr;
+            return false;
+        }
+
+        virtualMicBuffer_.reset();
+        const PaError openVirtual = Pa_OpenStream(&virtualMicStream_, nullptr, &virtualOutput, sampleRate_, 256,
+                                                   paNoFlag, &AudioEngine::virtualMicCallback, this);
+        if (openVirtual != paNoError || virtualMicStream_ == nullptr) {
+            if (errorMessage) *errorMessage = QString("Could not open the virtual microphone output: %1").arg(Pa_GetErrorText(openVirtual));
+            virtualMicStream_ = nullptr;
+            Pa_CloseStream(stream_);
+            stream_ = nullptr;
+            return false;
+        }
+    }
+
     const PaError startResult = Pa_StartStream(stream_);
     if (startResult != paNoError) {
         if (errorMessage) *errorMessage = QString("Could not start audio stream: %1").arg(Pa_GetErrorText(startResult));
+        if (virtualMicStream_ != nullptr) {
+            Pa_CloseStream(virtualMicStream_);
+            virtualMicStream_ = nullptr;
+        }
         Pa_CloseStream(stream_);
         stream_ = nullptr;
         return false;
     }
+
+    if (virtualMicStream_ != nullptr) {
+        const PaError virtualStart = Pa_StartStream(virtualMicStream_);
+        if (virtualStart != paNoError) {
+            if (errorMessage) *errorMessage = QString("Could not start virtual microphone output: %1").arg(Pa_GetErrorText(virtualStart));
+            Pa_StopStream(stream_);
+            Pa_CloseStream(virtualMicStream_);
+            virtualMicStream_ = nullptr;
+            Pa_CloseStream(stream_);
+            stream_ = nullptr;
+            return false;
+        }
+    }
     return true;
 }
-
 void AudioEngine::stop()
 {
-    if (stream_ == nullptr) { recorder_.stop(); return; }
-    if (Pa_IsStreamActive(stream_) == 1) Pa_StopStream(stream_);
-    else Pa_AbortStream(stream_);
+    if (virtualMicStream_ != nullptr) {
+        const PaError active = Pa_IsStreamActive(virtualMicStream_);
+        if (active == 1) Pa_StopStream(virtualMicStream_);
+        else Pa_AbortStream(virtualMicStream_);
+        Pa_CloseStream(virtualMicStream_);
+        virtualMicStream_ = nullptr;
+    }
+    if (stream_ != nullptr) {
+        const PaError active = Pa_IsStreamActive(stream_);
+        if (active == 1) Pa_StopStream(stream_);
+        else Pa_AbortStream(stream_);
+        Pa_CloseStream(stream_);
+        stream_ = nullptr;
+    }
     recorder_.stop();
-    Pa_CloseStream(stream_);
-    stream_ = nullptr;
+    virtualMicBuffer_.reset();
     inputLevel_.store(0.0F, std::memory_order_relaxed);
 }
-
 bool AudioEngine::isRunning() const
 {
     return stream_ != nullptr && Pa_IsStreamActive(stream_) == 1;
@@ -130,6 +194,16 @@ std::uint64_t AudioEngine::droppedRecordingSamples() const { return recorder_.dr
 std::uint64_t AudioEngine::acceptedRecordingSamples() const { return recorder_.acceptedSamples(); }
 float AudioEngine::recordingPeakLevel() const { return recorder_.peakLevel(); }
 
+int AudioEngine::virtualMicCallback(void *output, unsigned long frameCount,
+                                      const PaStreamCallbackTimeInfo *, PaStreamCallbackFlags, void *userData)
+{
+    auto *engine = static_cast<AudioEngine *>(userData);
+    auto *outputSamples = static_cast<float *>(output);
+    if (outputSamples == nullptr) return paContinue;
+    engine->virtualMicBuffer_.read(outputSamples, static_cast<std::size_t>(frameCount));
+    return paContinue;
+}
+
 int AudioEngine::audioCallback(const void *input, void *output, unsigned long frameCount,
                                const PaStreamCallbackTimeInfo *, PaStreamCallbackFlags, void *userData)
 {
@@ -160,6 +234,8 @@ int AudioEngine::audioCallback(const void *input, void *output, unsigned long fr
     }
     const float rms = frameCount > 0 ? static_cast<float>(std::sqrt(sumSquares / static_cast<double>(frameCount))) : 0.0F;
     engine->recorder_.push(outputSamples, static_cast<std::size_t>(frameCount));
+    if (engine->virtualMicStream_ != nullptr)
+        engine->virtualMicBuffer_.write(outputSamples, static_cast<std::size_t>(frameCount));
     engine->inputLevel_.store(std::clamp(rms, 0.0F, 1.0F), std::memory_order_relaxed);
     return paContinue;
 }
