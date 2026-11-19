@@ -34,7 +34,11 @@ public:
     float recordingPeakLevel() const;
 
 private:
-    static int virtualMicCallback(void *output, unsigned long frameCount,\n                                 const PaStreamCallbackTimeInfo *timeInfo,\n                                 PaStreamCallbackFlags statusFlags, void *userData);\n\n    static int audioCallback(
+    static int virtualMicCallback(void *output, unsigned long frameCount,
+                                 const PaStreamCallbackTimeInfo *timeInfo,
+                                 PaStreamCallbackFlags statusFlags, void *userData);
+
+    static int audioCallback(
         const void *input,
         void *output,
         unsigned long frameCount,
@@ -43,9 +47,11 @@ private:
         void *userData);
 
     VoiceProcessor processor_;
-    AudioRecorder recorder_;\n    AudioFanoutBuffer virtualMicBuffer_;
+    AudioRecorder recorder_;
+    AudioFanoutBuffer virtualMicBuffer_;
     double sampleRate_ = 48000.0;
-    PaStream *stream_ = nullptr;\n    PaStream *virtualMicStream_ = nullptr;
+    PaStream *stream_ = nullptr;
+    PaStream *virtualMicStream_ = nullptr;
     std::atomic<float> inputLevel_{0.0F};
     std::atomic<float> microphoneGain_{1.0F};
     std::atomic<float> outputGain_{1.0F};
