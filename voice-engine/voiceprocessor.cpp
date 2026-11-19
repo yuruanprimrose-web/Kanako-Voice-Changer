@@ -5,6 +5,7 @@
 void VoiceProcessor::prepare(double sampleRate)
 {
     const float rate = static_cast<float>(sampleRate);
+    gainedInput_.resize(8192);
     stretch_.presetCheaper(1, rate, true);
     stretch_.setFormantBase(0.0F);
     activePreset_ = static_cast<Preset>(requestedPreset_.load(std::memory_order_relaxed));
@@ -36,7 +37,7 @@ void VoiceProcessor::applyPreset(Preset preset)
     }
 }
 
-void VoiceProcessor::process(const float *input, float *output, unsigned long frameCount)
+void VoiceProcessor::process(const float *input, float *output, unsigned long frameCount, float inputGain)
 {
     if (output == nullptr || frameCount == 0) return;
     if (input == nullptr || !prepared_) {
@@ -50,7 +51,12 @@ void VoiceProcessor::process(const float *input, float *output, unsigned long fr
         activePreset_ = requested;
     }
 
-    float *inputChannels[1] = {const_cast<float *>(input)};
+    if (frameCount > gainedInput_.size()) gainedInput_.resize(frameCount);
+    const float safeInputGain = std::clamp(inputGain, 0.0F, 4.0F);
+    for (unsigned long i = 0; i < frameCount; ++i)
+        gainedInput_[i] = input[i] * safeInputGain;
+
+    float *inputChannels[1] = {gainedInput_.data()};
     float *outputChannels[1] = {output};
     stretch_.process(inputChannels, static_cast<int>(frameCount),
                      outputChannels, static_cast<int>(frameCount));
