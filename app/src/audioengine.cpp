@@ -194,7 +194,7 @@ std::uint64_t AudioEngine::droppedRecordingSamples() const { return recorder_.dr
 std::uint64_t AudioEngine::acceptedRecordingSamples() const { return recorder_.acceptedSamples(); }
 float AudioEngine::recordingPeakLevel() const { return recorder_.peakLevel(); }
 
-int AudioEngine::virtualMicCallback(void *output, unsigned long frameCount,
+int AudioEngine::virtualMicCallback(const void *, void *output, unsigned long frameCount,
                                       const PaStreamCallbackTimeInfo *, PaStreamCallbackFlags, void *userData)
 {
     auto *engine = static_cast<AudioEngine *>(userData);
