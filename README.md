@@ -30,7 +30,7 @@ The current working baseline is **Build #52**.
 
 ## Virtual microphone investigation
 
-The next development priority is a Windows recording endpoint that exposes Kanako's processed voice to other applications. Driver options, redistribution terms, routing design, signing requirements, and test gates are documented in [Virtual Microphone Plan](docs/VIRTUAL_MICROPHONE_PLAN.md).
+The next development priority is a Windows recording endpoint that exposes Kanako's processed voice to other applications. Driver options, redistribution terms, routing design, signing requirements, and test gates are documented in [Virtual Microphone Plan](docs/VIRTUAL_MICROPHONE_PLAN.md) and [User Setup Guide](docs/VIRTUAL_MICROPHONE_USER_GUIDE.md).
 
 No third-party driver is bundled. The user must install VB-CABLE separately from the official VB-Audio site for the first hardware test. The prototype is not yet verified on a real Windows endpoint; no application compatibility is claimed. The plan keeps a future Kanako-owned driver possible.
 
