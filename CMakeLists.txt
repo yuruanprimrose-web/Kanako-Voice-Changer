@@ -41,6 +41,8 @@ qt_add_executable(KanakoVoiceChanger WIN32
     app/src/main.cpp
     app/src/audioengine.cpp
     app/src/audioengine.h
+    app/src/audiorecorder.cpp
+    app/src/audiorecorder.h
     app/src/mainwindow.cpp
     app/src/mainwindow.h
 )
