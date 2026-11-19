@@ -17,7 +17,7 @@ public:
     bool start(PaDeviceIndex inputDevice, PaDeviceIndex outputDevice, QString *errorMessage);
     void stop();
     bool isRunning() const;
-    void setPreset(VoiceProcessor::Preset preset);
+    void setVoiceTone(float pitchSemitones, float formantSemitones);
     void setMicrophoneGain(float gain);
     void setOutputGain(float gain);
     float inputLevel() const;
@@ -34,6 +34,6 @@ private:
     VoiceProcessor processor_;
     PaStream *stream_ = nullptr;
     std::atomic<float> inputLevel_{0.0F};
-    std::atomic<float> microphoneGain_{1.5F};
-    std::atomic<float> outputGain_{1.5F};
+    std::atomic<float> microphoneGain_{1.0F};
+    std::atomic<float> outputGain_{1.0F};
 };
