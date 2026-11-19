@@ -2,6 +2,7 @@
 #include <portaudio.h>
 #include <QComboBox>
 #include <QDateTime>
+#include <QFile>
 #include <QDir>
 #include <QFileDialog>
 #include <QFormLayout>
@@ -408,16 +409,17 @@ void MainWindow::startRecording()
         setAudioStatus("Start the voice changer before recording.", true);
         return;
     }
-    const QString defaultName = QDir::homePath() + "/Kanako Recording " +
-                                QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss") + ".wav";
-    const QString path = QFileDialog::getSaveFileName(this, "Save Kanako recording", defaultName,
-                                                       "WAV audio (*.wav)");
-    if (path.isEmpty()) return;
+
+    // Capture immediately to a temporary WAV. Ask for the destination only after Stop.
+    recordingTempPath_ = QDir::tempPath() + "/Kanako-Recording-" +
+                         QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss-zzz") + ".wav";
     QString error;
-    if (!audioEngine_.startRecording(path, &error)) {
+    if (!audioEngine_.startRecording(recordingTempPath_, &error)) {
+        recordingTempPath_.clear();
         setAudioStatus(error, true);
         return;
     }
+
     recordingSeconds_ = 0;
     recordingStatusLabel_->setText("Recording processed voice • 00:00");
     recordButton_->setEnabled(false);
@@ -425,7 +427,7 @@ void MainWindow::startRecording()
     pauseRecordingButton_->setText("Pause");
     stopRecordingButton_->setEnabled(true);
     recordingTimer_->start();
-    setAudioStatus("Recording started. Your processed voice is being saved as WAV.");
+    setAudioStatus("Recording started. Speak now; choose where to save after stopping.");
 }
 
 void MainWindow::pauseOrResumeRecording()
@@ -448,17 +450,43 @@ void MainWindow::stopRecording()
     recordingTimer_->stop();
     const auto dropped = audioEngine_.droppedRecordingSamples();
     audioEngine_.stopRecording();
+
     recordButton_->setEnabled(audioEngine_.isRunning());
     pauseRecordingButton_->setEnabled(false);
     pauseRecordingButton_->setText("Pause");
     stopRecordingButton_->setEnabled(false);
+
+    const QString defaultName = QDir::homePath() + "/Kanako Recording " +
+                                QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss") + ".wav";
+    QString destination = QFileDialog::getSaveFileName(this, "Save Kanako recording", defaultName,
+                                                         "WAV audio (*.wav)");
+    if (destination.isEmpty()) {
+        QFile::remove(recordingTempPath_);
+        recordingTempPath_.clear();
+        recordingStatusLabel_->setText("Recording discarded");
+        setAudioStatus("Recording stopped. No file was saved because the save dialog was cancelled.");
+        return;
+    }
+    if (!destination.endsWith(".wav", Qt::CaseInsensitive)) destination += ".wav";
+
+    if (QFile::exists(destination)) QFile::remove(destination);
+    const bool copied = QFile::copy(recordingTempPath_, destination);
+    QFile::remove(recordingTempPath_);
+    recordingTempPath_.clear();
+
+    if (!copied) {
+        recordingStatusLabel_->setText("Could not save recording");
+        setAudioStatus("The recording was captured, but Kanako could not copy it to the selected location. Check folder permissions and free space.", true);
+        return;
+    }
+
     recordingStatusLabel_->setText(QString("Recording saved • %1:%2")
         .arg(recordingSeconds_ / 60, 2, 10, QChar('0'))
         .arg(recordingSeconds_ % 60, 2, 10, QChar('0')));
     if (dropped > 0) {
-        setAudioStatus(QString("Recording saved, but %1 audio samples were dropped because the disk could not keep up.").arg(dropped), true);
+        setAudioStatus(QString("WAV saved, but %1 audio samples were dropped because the disk could not keep up.").arg(dropped), true);
     } else {
-        setAudioStatus("Recording saved successfully as a WAV file.");
+        setAudioStatus("WAV recording saved successfully.");
     }
 }
 
