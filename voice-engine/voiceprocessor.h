@@ -2,28 +2,21 @@
 
 #include <signalsmith-stretch/signalsmith-stretch.h>
 #include <atomic>
-#include <cstddef>
 #include <vector>
 
 class VoiceProcessor final
 {
 public:
-    enum class Preset : int {
-        Neutral = 0,
-        Female = 1,
-        Male = 2
-    };
-
     void prepare(double sampleRate);
-    void setPreset(Preset preset);
+    void setVoiceTone(float pitchSemitones, float formantSemitones);
     void process(const float *input, float *output, unsigned long frameCount, float inputGain = 1.0F);
 
 private:
-    void applyPreset(Preset preset);
-
     signalsmith::stretch::SignalsmithStretch<float> stretch_;
     std::vector<float> gainedInput_;
-    std::atomic<int> requestedPreset_{static_cast<int>(Preset::Neutral)};
-    Preset activePreset_ = Preset::Neutral;
+    std::atomic<float> requestedPitch_{0.0F};
+    std::atomic<float> requestedFormant_{0.0F};
+    float activePitch_ = 0.0F;
+    float activeFormant_ = 0.0F;
     bool prepared_ = false;
 };
