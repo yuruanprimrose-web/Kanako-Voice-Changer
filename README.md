@@ -1,6 +1,6 @@
 # Kanako Voice Changer
 
-Kanako is being developed as one integrated Windows desktop voice changer. The goal is to let a user select built-in female-style or male-style voice effects and process microphone audio locally.
+Kanako is being developed as one integrated Windows desktop voice changer. The current development build provides microphone and output device selection, live microphone monitoring, an input-level meter, and initial non-AI pitch/formant presets.
 
 ## Product commitments
 
@@ -9,29 +9,32 @@ Kanako is being developed as one integrated Windows desktop voice changer. The g
 - No paid cloud API, subscription, or premium feature lock.
 - Local microphone processing; no voice upload.
 - No copied proprietary VoiceWave code, assets, or binaries.
-- Free and open-source Kanako source under the MIT License.
+- Kanako's own source is MIT licensed. Third-party components retain their own licenses.
 
-## Current development status
+## Current verified status
 
-The repository now contains the Qt 6 desktop window source, CMake configuration, Windows CI workflow, PortAudio device enumeration, and a microphone-to-output passthrough implementation with an input-level meter.
+- [x] Qt 6 desktop application source is present.
+- [x] PortAudio microphone and output device enumeration is present.
+- [x] Microphone-to-output audio callback is present.
+- [x] Input-level meter and start/stop controls are present.
+- [x] Neutral, Female-style, and Male-style DSP preset selections are connected to the processing code.
+- [x] GitHub Actions Windows x64 build completed successfully (run #22).
+- [x] A portable Windows x64 build artifact was uploaded by that run.
+- [ ] The downloaded application has not yet been launched and tested on a user's Windows PC.
+- [ ] Real microphone/speaker behavior, voice quality, latency, and stability have not yet been verified on target hardware.
+- [ ] A proper Windows installer, upgrade flow, and uninstall flow are not yet available.
 
-**This is not a finished voice changer yet.** The passthrough code has been committed but has not yet passed a Windows build or real microphone/speaker test. Pitch/formant processing and working female-style/male-style presets are not connected; the preset selector remains disabled. Installer and release testing are also pending.
+**Important:** A successful CI compile proves that the source compiled and the portable build folder was produced. It does not prove real-device audio works correctly or that the voice presets sound natural. Treat this as an early development build, not a finished release.
 
-The Windows CI workflow is intended to compile the current source on GitHub Actions. A successful build must be confirmed from an actual workflow run before it is reported as PASS.
+## Build configuration
 
-## Planned technology
+- C++17
+- Qt 6.8.3 Widgets
+- CMake
+- PortAudio 19.7.0 for audio device access
+- Signalsmith Stretch 1.4.0 for pitch/time and formant processing
 
-- C++17 or later
-- Qt 6 Widgets for the integrated desktop UI
-- CMake for repeatable builds
-- PortAudio for audio device access and real-time input/output
-- Signalsmith Stretch for pitch/time shifting and formant compensation
-
-Exact dependency versions and redistribution notices must be pinned and checked before packaging. See [the architecture decision](docs/ARCHITECTURE.md), [roadmap](docs/ROADMAP.md), and [third-party license inventory](docs/THIRD_PARTY_LICENSES.md).
-
-## Build direction
-
-The initial Windows build is configured for Visual Studio 2022 x64 and Qt 6.8.3. See the GitHub Actions workflow at `.github/workflows/windows-build.yml`. A local developer setup guide will be added after the first CI build is confirmed.
+Exact dependency versions and redistribution notices must be checked before packaging. See [the architecture decision](docs/ARCHITECTURE.md), [roadmap](docs/ROADMAP.md), and [third-party license inventory](docs/THIRD_PARTY_LICENSES.md).
 
 ## Repository layout
 
@@ -45,6 +48,12 @@ The initial Windows build is configured for Visual Studio 2022 x64 and Qt 6.8.3.
 - `installer/` — Windows packaging
 - `tests/` — automated and manual test assets
 - `docs/` — architecture, roadmap, testing, and license records
+
+## Testing the current portable build
+
+Download the `Kanako-Voice-Changer-Windows-x64` artifact from the latest successful Windows build in GitHub Actions. Extract the entire ZIP to a normal folder and run `Kanako Voice Changer.exe` from inside that extracted folder. Do not move the EXE out by itself because the Qt runtime files and plugin folders must stay beside it.
+
+For the first test, select your microphone and speaker, leave the preset on Neutral / Bypass, and press Start voice changer. Use headphones to reduce feedback. Then test Female-style and Male-style briefly at a safe volume. Stop the audio before changing devices. Report any error text and whether you hear clean audio, altered audio, or silence.
 
 ## License
 
