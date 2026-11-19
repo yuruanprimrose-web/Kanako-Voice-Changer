@@ -133,13 +133,8 @@ bool AudioEngine::start(PaDeviceIndex inputDevice, PaDeviceIndex outputDevice,
 }
 void AudioEngine::stop()
 {
-    if (virtualMicStream_ != nullptr) {
-        const PaError active = Pa_IsStreamActive(virtualMicStream_);
-        if (active == 1) Pa_StopStream(virtualMicStream_);
-        else Pa_AbortStream(virtualMicStream_);
-        Pa_CloseStream(virtualMicStream_);
-        virtualMicStream_ = nullptr;
-    }
+    // Stop the producer stream first so its callback can no longer inspect
+    // virtualMicStream_ or write to the fan-out queue while the consumer closes.
     if (stream_ != nullptr) {
         const PaError active = Pa_IsStreamActive(stream_);
         if (active == 1) Pa_StopStream(stream_);
@@ -148,6 +143,13 @@ void AudioEngine::stop()
         stream_ = nullptr;
     }
     recorder_.stop();
+    if (virtualMicStream_ != nullptr) {
+        const PaError active = Pa_IsStreamActive(virtualMicStream_);
+        if (active == 1) Pa_StopStream(virtualMicStream_);
+        else Pa_AbortStream(virtualMicStream_);
+        Pa_CloseStream(virtualMicStream_);
+        virtualMicStream_ = nullptr;
+    }
     virtualMicBuffer_.reset();
     inputLevel_.store(0.0F, std::memory_order_relaxed);
 }
