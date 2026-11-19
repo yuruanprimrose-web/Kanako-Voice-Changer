@@ -66,7 +66,10 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     outputDeviceCombo_ = new QComboBox(deviceGroup);
     outputDeviceCombo_->setObjectName("outputDeviceCombo");
     deviceLayout->addRow("Microphone", inputDeviceCombo_);
-    deviceLayout->addRow("Speaker / Output", outputDeviceCombo_);\n    virtualMicDeviceCombo_ = new QComboBox(deviceGroup);\n    virtualMicDeviceCombo_->setObjectName("virtualMicDeviceCombo");\n    deviceLayout->addRow("Virtual microphone", virtualMicDeviceCombo_);
+    deviceLayout->addRow("Speaker / Output", outputDeviceCombo_);
+    virtualMicDeviceCombo_ = new QComboBox(deviceGroup);
+    virtualMicDeviceCombo_->setObjectName("virtualMicDeviceCombo");
+    deviceLayout->addRow("Virtual microphone", virtualMicDeviceCombo_);
 
     auto *presetGroup = new QGroupBox("VOICE PRESET", central);
     auto *presetLayout = new QFormLayout(presetGroup);
@@ -309,7 +312,11 @@ void MainWindow::populateDeviceLists()
         if (info == nullptr) continue;
         const QString deviceName = QString::fromUtf8(info->name);
         if (info->maxInputChannels > 0) inputDeviceCombo_->addItem(deviceName, index);
-        if (info->maxOutputChannels > 0) {\n            outputDeviceCombo_->addItem(deviceName, index);\n            if (deviceName.contains("CABLE Input", Qt::CaseInsensitive))\n                virtualMicDeviceCombo_->addItem(deviceName, index);\n        }
+        if (info->maxOutputChannels > 0) {
+            outputDeviceCombo_->addItem(deviceName, index);
+            if (deviceName.contains("CABLE Input", Qt::CaseInsensitive))
+                virtualMicDeviceCombo_->addItem(deviceName, index);
+        }
     }
     if (inputDeviceCombo_->count() == 0) inputDeviceCombo_->addItem("No microphone detected");
     if (outputDeviceCombo_->count() == 0) outputDeviceCombo_->addItem("No output device detected");
@@ -321,7 +328,8 @@ void MainWindow::restoreSettings()
 {
     QSettings settings("Yuruan Primrose", "Kanako Voice Changer");
     const int inputIndex = inputDeviceCombo_->findText(settings.value("audio/inputDevice").toString());
-    const int outputIndex = outputDeviceCombo_->findText(settings.value("audio/outputDevice").toString());\n    const int virtualIndex = virtualMicDeviceCombo_->findData(settings.value("audio/virtualMicDevice", static_cast<int>(paNoDevice)).toInt());
+    const int outputIndex = outputDeviceCombo_->findText(settings.value("audio/outputDevice").toString());
+    const int virtualIndex = virtualMicDeviceCombo_->findData(settings.value("audio/virtualMicDevice", static_cast<int>(paNoDevice)).toInt());
     const int presetIndex = presetCombo_->findData(settings.value("audio/voicePreset", "neutral"));
     const int defaultPitch = presetIndex == 1 ? 20 : (presetIndex == 2 ? -30 : 0);
     const int defaultFormant = presetIndex == 1 ? 10 : (presetIndex == 2 ? -15 : 0);
@@ -330,7 +338,8 @@ void MainWindow::restoreSettings()
     const int microphoneGain = settings.value("audio/microphoneGain", 100).toInt();
     const int outputGain = settings.value("audio/outputGain", 100).toInt();
     if (inputIndex >= 0) inputDeviceCombo_->setCurrentIndex(inputIndex);
-    if (outputIndex >= 0) outputDeviceCombo_->setCurrentIndex(outputIndex);\n    if (virtualIndex >= 0) virtualMicDeviceCombo_->setCurrentIndex(virtualIndex);
+    if (outputIndex >= 0) outputDeviceCombo_->setCurrentIndex(outputIndex);
+    if (virtualIndex >= 0) virtualMicDeviceCombo_->setCurrentIndex(virtualIndex);
     if (presetIndex >= 0) presetCombo_->setCurrentIndex(presetIndex);
     {
         const QSignalBlocker pitchBlock(pitchSlider_);
@@ -384,7 +393,9 @@ void MainWindow::startAudio()
     stopButton_->setEnabled(true);
     recordButton_->setEnabled(true);
     meterTimer_->start();
-    setAudioStatus(virtualMicDevice != paNoDevice\n        ? "Voice processing is running. Processed voice is also routed to the selected virtual microphone. Use headphones to prevent feedback."\n        : "Voice processing is running. Use headphones to prevent feedback.");
+    setAudioStatus(virtualMicDevice != paNoDevice
+        ? "Voice processing is running. Processed voice is also routed to the selected virtual microphone. Use headphones to prevent feedback."
+        : "Voice processing is running. Use headphones to prevent feedback.");
 }
 
 void MainWindow::stopAudio()
