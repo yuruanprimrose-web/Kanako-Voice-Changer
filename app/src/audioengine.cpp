@@ -64,6 +64,7 @@ bool AudioEngine::start(PaDeviceIndex inputDevice, PaDeviceIndex outputDevice, Q
         return false;
     }
 
+    sampleRate_ = openedSampleRate;
     processor_.prepare(openedSampleRate);
     const PaError startResult = Pa_StartStream(stream_);
     if (startResult != paNoError) {
@@ -77,7 +78,8 @@ bool AudioEngine::start(PaDeviceIndex inputDevice, PaDeviceIndex outputDevice, Q
 
 void AudioEngine::stop()
 {
-    if (stream_ == nullptr) return;
+    if (stream_ == nullptr) { recorder_.stop(); return; }
+    recorder_.stop();
     if (Pa_IsStreamActive(stream_) == 1) Pa_StopStream(stream_);
     else Pa_AbortStream(stream_);
     Pa_CloseStream(stream_);
@@ -110,6 +112,22 @@ float AudioEngine::inputLevel() const
     return inputLevel_.load(std::memory_order_relaxed);
 }
 
+bool AudioEngine::startRecording(const QString &filePath, QString *errorMessage)
+{
+    if (!isRunning()) {
+        if (errorMessage) *errorMessage = "Start the voice changer before recording.";
+        return false;
+    }
+    return recorder_.start(filePath, static_cast<unsigned int>(sampleRate_), errorMessage);
+}
+
+void AudioEngine::pauseRecording() { recorder_.pause(); }
+void AudioEngine::resumeRecording() { recorder_.resume(); }
+void AudioEngine::stopRecording() { recorder_.stop(); }
+bool AudioEngine::isRecording() const { return recorder_.isRecording(); }
+bool AudioEngine::isRecordingPaused() const { return recorder_.isPaused(); }
+std::uint64_t AudioEngine::droppedRecordingSamples() const { return recorder_.droppedSamples(); }
+
 int AudioEngine::audioCallback(const void *input, void *output, unsigned long frameCount,
                                const PaStreamCallbackTimeInfo *, PaStreamCallbackFlags, void *userData)
 {
@@ -139,6 +157,7 @@ int AudioEngine::audioCallback(const void *input, void *output, unsigned long fr
         sumSquares += static_cast<double>(sample) * static_cast<double>(sample);
     }
     const float rms = frameCount > 0 ? static_cast<float>(std::sqrt(sumSquares / static_cast<double>(frameCount))) : 0.0F;
+    engine->recorder_.push(outputSamples, static_cast<std::size_t>(frameCount));
     engine->inputLevel_.store(std::clamp(rms, 0.0F, 1.0F), std::memory_order_relaxed);
     return paContinue;
 }
