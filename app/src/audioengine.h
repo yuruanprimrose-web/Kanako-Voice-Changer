@@ -29,6 +29,7 @@ private:
         PaStreamCallbackFlags statusFlags,
         void *userData);
 
+    VoiceProcessor processor_;
     PaStream *stream_ = nullptr;
     std::atomic<float> inputLevel_{0.0F};
 };
