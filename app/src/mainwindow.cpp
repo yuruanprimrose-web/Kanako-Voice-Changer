@@ -38,13 +38,12 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 
     auto *presetGroup = new QGroupBox("Voice preset", central);
     auto *presetLayout = new QFormLayout(presetGroup);
-    auto *presetCombo = new QComboBox(presetGroup);
-    presetCombo->setObjectName("voicePresetCombo");
-    presetCombo->addItem("Neutral / Bypass", "neutral");
-    presetCombo->addItem("Female-style", "female");
-    presetCombo->addItem("Male-style", "male");
-    presetCombo->setEnabled(false);
-    presetLayout->addRow("Select preset", presetCombo);
+    presetCombo_ = new QComboBox(presetGroup);
+    presetCombo_->setObjectName("voicePresetCombo");
+    presetCombo_->addItem("Neutral / Bypass", "neutral");
+    presetCombo_->addItem("Female-style", "female");
+    presetCombo_->addItem("Male-style", "male");
+    presetLayout->addRow("Select preset", presetCombo_);
 
     auto *meterLabel = new QLabel("Microphone input level", central);
     inputMeter_ = new QProgressBar(central);
@@ -55,7 +54,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 
     audioStatusLabel_ = new QLabel("Initializing audio devices...", central);
     audioStatusLabel_->setWordWrap(true);
-    startButton_ = new QPushButton("Start audio passthrough", central);
+    startButton_ = new QPushButton("Start voice changer", central);
     startButton_->setObjectName("startButton");
     stopButton_ = new QPushButton("Stop", central);
     stopButton_->setObjectName("stopButton");
@@ -65,7 +64,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     buttonLayout->addWidget(startButton_);
     buttonLayout->addWidget(stopButton_);
     auto *note = new QLabel(
-        "Development build — microphone audio is currently passed through unchanged. Female-style and male-style processing is not connected yet.",
+        "Development build — non-AI pitch and formant presets are connected as an initial prototype. Use headphones to reduce acoustic feedback.",
         central);
     note->setWordWrap(true);
 
@@ -81,6 +80,9 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     rootLayout->addWidget(note);
     setCentralWidget(central);
 
+    connect(presetCombo_, qOverload<int>(&QComboBox::currentIndexChanged), this, [this](int index) {
+        audioEngine_.setPreset(static_cast<VoiceProcessor::Preset>(index));
+    });
     connect(startButton_, &QPushButton::clicked, this, &MainWindow::startAudio);
     connect(stopButton_, &QPushButton::clicked, this, &MainWindow::stopAudio);
     meterTimer_ = new QTimer(this);
@@ -155,7 +157,7 @@ void MainWindow::startAudio()
     startButton_->setEnabled(false);
     stopButton_->setEnabled(true);
     meterTimer_->start();
-    setAudioStatus("Audio passthrough is running. Your microphone is being sent to the selected output without voice conversion.");
+    setAudioStatus("Voice processing is running. Use headphones to prevent feedback. The current pitch/formant settings are initial tuning values.");
 }
 
 void MainWindow::stopAudio()
@@ -168,7 +170,7 @@ void MainWindow::stopAudio()
     startButton_->setEnabled(inputDeviceCombo_->currentData().isValid()
                              && outputDeviceCombo_->currentData().isValid());
     stopButton_->setEnabled(false);
-    setAudioStatus("Audio passthrough stopped.");
+    setAudioStatus("Voice processing stopped.");
 }
 
 void MainWindow::updateInputMeter()
