@@ -30,6 +30,10 @@ private:
     QComboBox *inputDeviceCombo_ = nullptr;
     QComboBox *outputDeviceCombo_ = nullptr;
     QComboBox *presetCombo_ = nullptr;
+    QSlider *pitchSlider_ = nullptr;
+    QSlider *formantSlider_ = nullptr;
+    QLabel *pitchValue_ = nullptr;
+    QLabel *formantValue_ = nullptr;
     QSlider *microphoneGainSlider_ = nullptr;
     QSlider *outputGainSlider_ = nullptr;
     QLabel *microphoneGainValue_ = nullptr;
