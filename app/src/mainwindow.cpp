@@ -78,8 +78,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     microphoneGainSlider_->setObjectName("microphoneGainSlider");
     microphoneGainSlider_->setRange(0, 300);
     microphoneGainSlider_->setSingleStep(5);
-    microphoneGainSlider_->setValue(150);
-    microphoneGainValue_ = new QLabel("150%", gainGroup);
+    microphoneGainSlider_->setValue(100);
+    microphoneGainValue_ = new QLabel("100%", gainGroup);
     auto *micGainRow = new QWidget(gainGroup);
     auto *micGainRowLayout = new QHBoxLayout(micGainRow);
     micGainRowLayout->setContentsMargins(0, 0, 0, 0);
@@ -91,8 +91,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     outputGainSlider_->setObjectName("outputGainSlider");
     outputGainSlider_->setRange(0, 300);
     outputGainSlider_->setSingleStep(5);
-    outputGainSlider_->setValue(150);
-    outputGainValue_ = new QLabel("150%", gainGroup);
+    outputGainSlider_->setValue(100);
+    outputGainValue_ = new QLabel("100%", gainGroup);
     auto *outputGainRow = new QWidget(gainGroup);
     auto *outputGainRowLayout = new QHBoxLayout(outputGainRow);
     outputGainRowLayout->setContentsMargins(0, 0, 0, 0);
@@ -238,8 +238,8 @@ void MainWindow::restoreSettings()
     const int inputIndex = inputDeviceCombo_->findText(settings.value("audio/inputDevice").toString());
     const int outputIndex = outputDeviceCombo_->findText(settings.value("audio/outputDevice").toString());
     const int presetIndex = presetCombo_->findData(settings.value("audio/voicePreset", "neutral"));
-    const int microphoneGain = settings.value("audio/microphoneGain", 150).toInt();
-    const int outputGain = settings.value("audio/outputGain", 150).toInt();
+    const int microphoneGain = settings.value("audio/microphoneGain", 100).toInt();
+    const int outputGain = settings.value("audio/outputGain", 100).toInt();
     if (inputIndex >= 0) inputDeviceCombo_->setCurrentIndex(inputIndex);
     if (outputIndex >= 0) outputDeviceCombo_->setCurrentIndex(outputIndex);
     if (presetIndex >= 0) presetCombo_->setCurrentIndex(presetIndex);
