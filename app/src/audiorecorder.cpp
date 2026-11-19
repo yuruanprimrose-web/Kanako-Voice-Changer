@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <filesystem>
 #include <limits>
 
 namespace {
@@ -25,7 +26,8 @@ AudioRecorder::~AudioRecorder() { stop(); }
 bool AudioRecorder::start(const QString &filePath, unsigned int sampleRate, QString *errorMessage)
 {
     stop();
-    file_.open(filePath.toStdString(), std::ios::binary | std::ios::in | std::ios::out | std::ios::trunc);
+    file_.clear();
+    file_.open(std::filesystem::path(filePath.toStdWString()), std::ios::binary | std::ios::in | std::ios::out | std::ios::trunc);
     if (!file_.is_open()) {
         if (errorMessage) *errorMessage = "Could not create the recording file. Check the folder permissions.";
         return false;
