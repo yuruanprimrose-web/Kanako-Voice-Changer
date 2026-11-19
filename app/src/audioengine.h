@@ -29,6 +29,8 @@ public:
     bool isRecording() const;
     bool isRecordingPaused() const;
     std::uint64_t droppedRecordingSamples() const;
+    std::uint64_t acceptedRecordingSamples() const;
+    float recordingPeakLevel() const;
 
 private:
     static int audioCallback(

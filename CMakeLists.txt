@@ -57,3 +57,15 @@ set_target_properties(KanakoVoiceChanger PROPERTIES
     WIN32_EXECUTABLE TRUE
     OUTPUT_NAME "Kanako Voice Changer"
 )
+
+include(CTest)
+if(BUILD_TESTING)
+    add_executable(kanako_recorder_smoke_test
+        tests/audiorecorder_smoke_test.cpp
+        app/src/audiorecorder.cpp
+        app/src/audiorecorder.h
+    )
+    target_link_libraries(kanako_recorder_smoke_test PRIVATE Qt6::Core)
+    target_include_directories(kanako_recorder_smoke_test PRIVATE app/src)
+    add_test(NAME recorder_wav_smoke COMMAND kanako_recorder_smoke_test)
+endif()

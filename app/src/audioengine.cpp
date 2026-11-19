@@ -79,9 +79,9 @@ bool AudioEngine::start(PaDeviceIndex inputDevice, PaDeviceIndex outputDevice, Q
 void AudioEngine::stop()
 {
     if (stream_ == nullptr) { recorder_.stop(); return; }
-    recorder_.stop();
     if (Pa_IsStreamActive(stream_) == 1) Pa_StopStream(stream_);
     else Pa_AbortStream(stream_);
+    recorder_.stop();
     Pa_CloseStream(stream_);
     stream_ = nullptr;
     inputLevel_.store(0.0F, std::memory_order_relaxed);
@@ -127,6 +127,8 @@ void AudioEngine::stopRecording() { recorder_.stop(); }
 bool AudioEngine::isRecording() const { return recorder_.isRecording(); }
 bool AudioEngine::isRecordingPaused() const { return recorder_.isPaused(); }
 std::uint64_t AudioEngine::droppedRecordingSamples() const { return recorder_.droppedSamples(); }
+std::uint64_t AudioEngine::acceptedRecordingSamples() const { return recorder_.acceptedSamples(); }
+float AudioEngine::recordingPeakLevel() const { return recorder_.peakLevel(); }
 
 int AudioEngine::audioCallback(const void *input, void *output, unsigned long frameCount,
                                const PaStreamCallbackTimeInfo *, PaStreamCallbackFlags, void *userData)

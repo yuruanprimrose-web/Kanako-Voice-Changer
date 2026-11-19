@@ -449,6 +449,8 @@ void MainWindow::stopRecording()
     if (!audioEngine_.isRecording()) return;
     recordingTimer_->stop();
     const auto dropped = audioEngine_.droppedRecordingSamples();
+    const auto accepted = audioEngine_.acceptedRecordingSamples();
+    const auto peak = audioEngine_.recordingPeakLevel();
     audioEngine_.stopRecording();
 
     recordButton_->setEnabled(audioEngine_.isRunning());
@@ -483,10 +485,15 @@ void MainWindow::stopRecording()
     recordingStatusLabel_->setText(QString("Recording saved • %1:%2")
         .arg(recordingSeconds_ / 60, 2, 10, QChar('0'))
         .arg(recordingSeconds_ % 60, 2, 10, QChar('0')));
-    if (dropped > 0) {
-        setAudioStatus(QString("WAV saved, but %1 audio samples were dropped because the disk could not keep up.").arg(dropped), true);
+    if (accepted == 0 || peak < 0.0001F) {
+        setAudioStatus(QString("WAV file saved, but the recorder received no usable voice signal (samples: %1, peak: %2). Check the microphone input meter and selected device.")
+                           .arg(accepted).arg(peak, 0, 'f', 6), true);
+    } else if (dropped > 0) {
+        setAudioStatus(QString("WAV saved with audio detected (peak %1), but %2 samples were dropped because the disk could not keep up.")
+                           .arg(peak, 0, 'f', 4).arg(dropped), true);
     } else {
-        setAudioStatus("WAV recording saved successfully.");
+        setAudioStatus(QString("WAV recording saved. Audio detected (peak level: %1).")
+                           .arg(peak, 0, 'f', 4));
     }
 }
 

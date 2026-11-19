@@ -24,6 +24,8 @@ public:
     bool isRecording() const noexcept;
     bool isPaused() const noexcept;
     std::uint64_t droppedSamples() const noexcept;
+    std::uint64_t acceptedSamples() const noexcept;
+    float peakLevel() const noexcept;
 
 private:
     void writerLoop() noexcept;
@@ -37,6 +39,9 @@ private:
     std::atomic<bool> paused_{false};
     std::atomic<bool> stopping_{false};
     std::atomic<std::uint64_t> dropped_{0};
+    std::atomic<std::uint64_t> accepted_{0};
+    std::atomic<float> peak_{0.0F};
+    std::atomic<std::uint32_t> inFlightPushes_{0};
     std::thread writer_;
     std::ofstream file_;
     unsigned int sampleRate_ = 48000;

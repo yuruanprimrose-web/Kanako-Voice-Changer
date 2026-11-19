@@ -5,6 +5,7 @@
 #include <cmath>
 #include <filesystem>
 #include <limits>
+#include <thread>
 
 namespace {
 void writeU16(std::ostream &out, std::uint16_t value)
@@ -35,6 +36,8 @@ bool AudioRecorder::start(const QString &filePath, unsigned int sampleRate, QStr
     sampleRate_ = sampleRate;
     dataBytes_ = 0;
     dropped_.store(0, std::memory_order_relaxed);
+    accepted_.store(0, std::memory_order_relaxed);
+    peak_.store(0.0F, std::memory_order_relaxed);
     writeIndex_.store(0, std::memory_order_relaxed);
     readIndex_.store(0, std::memory_order_relaxed);
     writeWaveHeader(0);
@@ -48,14 +51,31 @@ bool AudioRecorder::start(const QString &filePath, unsigned int sampleRate, QStr
 
 void AudioRecorder::push(const float *samples, std::size_t count) noexcept
 {
-    if (!active_.load(std::memory_order_acquire) || paused_.load(std::memory_order_relaxed) || samples == nullptr) return;
+    inFlightPushes_.fetch_add(1, std::memory_order_acq_rel);
+    if (!active_.load(std::memory_order_acquire) ||
+        paused_.load(std::memory_order_relaxed) || samples == nullptr) {
+        inFlightPushes_.fetch_sub(1, std::memory_order_release);
+        return;
+    }
+
     auto write = writeIndex_.load(std::memory_order_relaxed);
     const auto read = readIndex_.load(std::memory_order_acquire);
-    const auto available = kCapacity - static_cast<std::size_t>(write - read);
+    const auto used = static_cast<std::size_t>(write - read);
+    const auto available = used < kCapacity ? kCapacity - used : 0;
     const auto accepted = std::min(count, available);
-    for (std::size_t i = 0; i < accepted; ++i) ring_[static_cast<std::size_t>((write + i) % kCapacity)] = samples[i];
+    float blockPeak = 0.0F;
+    for (std::size_t i = 0; i < accepted; ++i) {
+        const float sample = samples[i];
+        ring_[static_cast<std::size_t>((write + i) % kCapacity)] = sample;
+        blockPeak = std::max(blockPeak, std::abs(sample));
+    }
     writeIndex_.store(write + accepted, std::memory_order_release);
+    if (accepted > 0) accepted_.fetch_add(accepted, std::memory_order_relaxed);
+    float previousPeak = peak_.load(std::memory_order_relaxed);
+    while (blockPeak > previousPeak &&
+           !peak_.compare_exchange_weak(previousPeak, blockPeak, std::memory_order_relaxed)) {}
     if (accepted < count) dropped_.fetch_add(count - accepted, std::memory_order_relaxed);
+    inFlightPushes_.fetch_sub(1, std::memory_order_release);
 }
 
 void AudioRecorder::pause() noexcept { paused_.store(true, std::memory_order_release); }
@@ -63,10 +83,15 @@ void AudioRecorder::resume() noexcept { if (active_.load(std::memory_order_acqui
 bool AudioRecorder::isRecording() const noexcept { return active_.load(std::memory_order_acquire); }
 bool AudioRecorder::isPaused() const noexcept { return paused_.load(std::memory_order_acquire); }
 std::uint64_t AudioRecorder::droppedSamples() const noexcept { return dropped_.load(std::memory_order_relaxed); }
+std::uint64_t AudioRecorder::acceptedSamples() const noexcept { return accepted_.load(std::memory_order_relaxed); }
+float AudioRecorder::peakLevel() const noexcept { return peak_.load(std::memory_order_relaxed); }
 
 void AudioRecorder::stop() noexcept
 {
-    if (!active_.exchange(false, std::memory_order_acq_rel) && !writer_.joinable()) return;
+    active_.store(false, std::memory_order_release);
+    while (inFlightPushes_.load(std::memory_order_acquire) != 0)
+        std::this_thread::yield();
+    if (!writer_.joinable() && !file_.is_open()) return;
     stopping_.store(true, std::memory_order_release);
     if (writer_.joinable()) writer_.join();
     if (file_.is_open()) {
