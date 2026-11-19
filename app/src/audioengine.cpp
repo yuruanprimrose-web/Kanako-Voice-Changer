@@ -193,6 +193,9 @@ bool AudioEngine::isRecordingPaused() const { return recorder_.isPaused(); }
 std::uint64_t AudioEngine::droppedRecordingSamples() const { return recorder_.droppedSamples(); }
 std::uint64_t AudioEngine::acceptedRecordingSamples() const { return recorder_.acceptedSamples(); }
 float AudioEngine::recordingPeakLevel() const { return recorder_.peakLevel(); }
+std::uint64_t AudioEngine::virtualMicDroppedSamples() const { return virtualMicBuffer_.droppedSamples(); }
+std::uint64_t AudioEngine::virtualMicUnderflowSamples() const { return virtualMicBuffer_.underflowSamples(); }
+bool AudioEngine::isVirtualMicActive() const { return virtualMicStream_ != nullptr; }
 
 int AudioEngine::virtualMicCallback(const void *, void *output, unsigned long frameCount,
                                       const PaStreamCallbackTimeInfo *, PaStreamCallbackFlags, void *userData)
