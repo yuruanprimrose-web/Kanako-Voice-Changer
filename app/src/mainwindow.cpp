@@ -4,19 +4,21 @@
 #include <QFormLayout>
 #include <QGroupBox>
 #include <QLabel>
+#include <QProgressBar>
 #include <QPushButton>
+#include <QTimer>
 #include <QVBoxLayout>
 #include <QWidget>
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 {
     setWindowTitle("Kanako Voice Changer");
-    setMinimumSize(640, 460);
-    resize(760, 540);
+    setMinimumSize(640, 480);
+    resize(760, 560);
     auto *central = new QWidget(this);
     auto *rootLayout = new QVBoxLayout(central);
     rootLayout->setContentsMargins(28, 24, 28, 24);
-    rootLayout->setSpacing(18);
+    rootLayout->setSpacing(16);
 
     auto *heading = new QLabel("KANAKO", central);
     QFont headingFont = heading->font();
@@ -44,15 +46,26 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     presetCombo->setEnabled(false);
     presetLayout->addRow("Select preset", presetCombo);
 
-    inputMeterLabel_ = new QLabel("Input level: waiting for audio engine", central);
+    auto *meterLabel = new QLabel("Microphone input level", central);
+    inputMeter_ = new QProgressBar(central);
+    inputMeter_->setObjectName("inputLevelMeter");
+    inputMeter_->setRange(0, 100);
+    inputMeter_->setValue(0);
+    inputMeter_->setTextVisible(false);
+
     audioStatusLabel_ = new QLabel("Initializing audio devices...", central);
     audioStatusLabel_->setWordWrap(true);
-    startButton_ = new QPushButton("Start voice changer", central);
+    startButton_ = new QPushButton("Start audio passthrough", central);
     startButton_->setObjectName("startButton");
-    startButton_->setEnabled(false);
-    startButton_->setToolTip("Live audio processing will be enabled after the audio pipeline is implemented.");
+    stopButton_ = new QPushButton("Stop", central);
+    stopButton_->setObjectName("stopButton");
+    stopButton_->setEnabled(false);
+
+    auto *buttonLayout = new QVBoxLayout();
+    buttonLayout->addWidget(startButton_);
+    buttonLayout->addWidget(stopButton_);
     auto *note = new QLabel(
-        "Development build — device discovery is available. Live audio processing and voice presets are not connected yet.",
+        "Development build — microphone audio is currently passed through unchanged. Female-style and male-style processing is not connected yet.",
         central);
     note->setWordWrap(true);
 
@@ -60,20 +73,27 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     rootLayout->addWidget(subtitle);
     rootLayout->addWidget(deviceGroup);
     rootLayout->addWidget(presetGroup);
-    rootLayout->addWidget(inputMeterLabel_);
+    rootLayout->addWidget(meterLabel);
+    rootLayout->addWidget(inputMeter_);
     rootLayout->addWidget(audioStatusLabel_);
-    rootLayout->addWidget(startButton_);
+    rootLayout->addLayout(buttonLayout);
     rootLayout->addStretch();
     rootLayout->addWidget(note);
     setCentralWidget(central);
+
+    connect(startButton_, &QPushButton::clicked, this, &MainWindow::startAudio);
+    connect(stopButton_, &QPushButton::clicked, this, &MainWindow::stopAudio);
+    meterTimer_ = new QTimer(this);
+    meterTimer_->setInterval(33);
+    connect(meterTimer_, &QTimer::timeout, this, &MainWindow::updateInputMeter);
     initializeAudioDevices();
 }
 
 MainWindow::~MainWindow()
 {
-    if (portAudioInitialized_) {
-        Pa_Terminate();
-    }
+    meterTimer_->stop();
+    audioEngine_.stop();
+    if (portAudioInitialized_) Pa_Terminate();
 }
 
 void MainWindow::initializeAudioDevices()
@@ -90,7 +110,7 @@ void MainWindow::initializeAudioDevices()
         setAudioStatus(QString("Could not enumerate audio devices: %1").arg(Pa_GetErrorText(deviceCount)), true);
         return;
     }
-    setAudioStatus(QString("Audio library initialized. Found %1 device(s). Live processing is not enabled in this build.")
+    setAudioStatus(QString("Audio engine ready. Found %1 device(s). Select your microphone and output, then start passthrough.")
                        .arg(deviceCount));
 }
 
@@ -113,6 +133,47 @@ void MainWindow::populateDeviceLists()
     }
     if (inputDeviceCombo_->count() == 0) inputDeviceCombo_->addItem("No microphone detected");
     if (outputDeviceCombo_->count() == 0) outputDeviceCombo_->addItem("No output device detected");
+    startButton_->setEnabled(inputDeviceCombo_->currentData().isValid()
+                             && outputDeviceCombo_->currentData().isValid());
+}
+
+void MainWindow::startAudio()
+{
+    if (!inputDeviceCombo_->currentData().isValid() || !outputDeviceCombo_->currentData().isValid()) {
+        setAudioStatus("Choose an available microphone and output device first.", true);
+        return;
+    }
+    QString errorMessage;
+    const auto inputDevice = static_cast<PaDeviceIndex>(inputDeviceCombo_->currentData().toInt());
+    const auto outputDevice = static_cast<PaDeviceIndex>(outputDeviceCombo_->currentData().toInt());
+    if (!audioEngine_.start(inputDevice, outputDevice, &errorMessage)) {
+        setAudioStatus(errorMessage, true);
+        return;
+    }
+    inputDeviceCombo_->setEnabled(false);
+    outputDeviceCombo_->setEnabled(false);
+    startButton_->setEnabled(false);
+    stopButton_->setEnabled(true);
+    meterTimer_->start();
+    setAudioStatus("Audio passthrough is running. Your microphone is being sent to the selected output without voice conversion.");
+}
+
+void MainWindow::stopAudio()
+{
+    meterTimer_->stop();
+    audioEngine_.stop();
+    inputMeter_->setValue(0);
+    inputDeviceCombo_->setEnabled(true);
+    outputDeviceCombo_->setEnabled(true);
+    startButton_->setEnabled(inputDeviceCombo_->currentData().isValid()
+                             && outputDeviceCombo_->currentData().isValid());
+    stopButton_->setEnabled(false);
+    setAudioStatus("Audio passthrough stopped.");
+}
+
+void MainWindow::updateInputMeter()
+{
+    inputMeter_->setValue(static_cast<int>(audioEngine_.inputLevel() * 100.0F));
 }
 
 void MainWindow::setAudioStatus(const QString &message, bool isError)
