@@ -2,6 +2,7 @@
 
 #include <portaudio.h>
 #include "voiceprocessor.h"
+#include "audiorecorder.h"
 #include <QString>
 #include <atomic>
 
@@ -21,6 +22,13 @@ public:
     void setMicrophoneGain(float gain);
     void setOutputGain(float gain);
     float inputLevel() const;
+    bool startRecording(const QString &filePath, QString *errorMessage);
+    void pauseRecording();
+    void resumeRecording();
+    void stopRecording();
+    bool isRecording() const;
+    bool isRecordingPaused() const;
+    std::uint64_t droppedRecordingSamples() const;
 
 private:
     static int audioCallback(
@@ -32,6 +40,8 @@ private:
         void *userData);
 
     VoiceProcessor processor_;
+    AudioRecorder recorder_;
+    double sampleRate_ = 48000.0;
     PaStream *stream_ = nullptr;
     std::atomic<float> inputLevel_{0.0F};
     std::atomic<float> microphoneGain_{1.0F};
