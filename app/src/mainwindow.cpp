@@ -27,7 +27,10 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     resize(820, 900);
     setStyleSheet(R"(
         QMainWindow { background: #10131b; }
-        QWidget { color: #edf0f7; font-family: "Segoe UI"; font-size: 10pt; }
+        QWidget { background-color: #10131b; color: #edf0f7; font-family: "Segoe UI"; font-size: 10pt; }
+        QScrollArea#mainScrollArea { background-color: #10131b; border: none; }
+        QScrollArea#mainScrollArea QWidget#qt_scrollarea_viewport { background-color: #10131b; }
+        QGroupBox { background-color: #171d29; }
         QLabel#brandTitle { color: #ffffff; font-size: 25pt; font-weight: 700; letter-spacing: 1px; }
         QLabel#brandSubtitle { color: #aab4c8; font-size: 11pt; }
         QGroupBox { border: 1px solid #30394b; border-radius: 12px; margin-top: 14px; padding: 18px 14px 12px 14px; font-weight: 600; color: #c9d5ea; }
