@@ -33,6 +33,7 @@ private:
     AudioEngine audioEngine_;
     QComboBox *inputDeviceCombo_ = nullptr;
     QComboBox *outputDeviceCombo_ = nullptr;
+    QComboBox *virtualMicDeviceCombo_ = nullptr;
     QComboBox *presetCombo_ = nullptr;
     QSlider *pitchSlider_ = nullptr;
     QSlider *formantSlider_ = nullptr;
