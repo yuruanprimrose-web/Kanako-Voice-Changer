@@ -1,37 +1,73 @@
-# Architecture Proposal
+# Kanako Voice Changer — Architecture Decision
 
-This document records the intended boundaries. It is a proposal, not a claim that these components already exist.
+This document records the current implementation direction. It does not claim that the application or audio processing is already working.
 
 ## Product shape
 
-Kanako is one Windows desktop application. The user-facing UI, audio device controls, preset selector, installation experience, and diagnostics belong to Kanako. Internal engine processes may be packaged as private implementation components, but they must not appear as a separate user-facing demo/client product.
+Kanako is one integrated Windows desktop application. The user must not need to launch a separate Voice Changer Client Demo, browser client, or visible helper application. Internal libraries are implementation details bundled with Kanako.
 
-## Proposed component boundaries
+## Product scope
 
-1. **Desktop UI** — device selection, input meter, preset selection, start/stop, status, and settings.
-2. **Audio I/O layer** — microphone capture, output playback, buffering, device enumeration, and recovery.
-3. **Voice processing adapter** — a stable interface between the audio pipeline and whichever conversion engine is selected.
-4. **Model manager** — model metadata, download/import, integrity validation, and license notices.
-5. **Installer/update layer** — installs and updates the integrated application and its required runtime components.
+- Local, real-time microphone voice effects.
+- Built-in selectable female-style and male-style presets.
+- One-click start/stop, microphone and speaker selection, input/output meters, and clear device errors.
+- No AI model training, AI inference engine, cloud voice API, subscription, or premium feature lock.
+- No copying of VoiceWave code, assets, or binaries.
 
-## Decisions still required
+The initial presets will use conventional digital signal processing (pitch shifting and formant/timbre adjustment). They are voice effects, not guaranteed transformations into a natural-sounding different person's voice. Preset quality must be judged by listening tests on real Windows hardware.
 
-- Desktop framework and language.
-- Audio backend and supported sample rates/buffer sizes.
-- Voice conversion engine and model format.
-- CPU-only baseline and optional GPU acceleration strategy.
-- Whether a virtual microphone driver is necessary for the first release.
-- Installer technology and update mechanism.
+## Selected technical direction
 
-These decisions should be made after checking current engine compatibility, Windows support, licenses, and realistic latency on the target hardware.
+| Layer | Direction | Reason |
+|---|---|---|
+| Desktop UI | Qt 6 Widgets, C++ | Native desktop window and direct integration with the audio engine; no separate web client. |
+| Build | CMake, C++17 or later | Standard Windows-native build workflow and repeatable dependency configuration. |
+| Audio I/O | PortAudio | Cross-device capture/playback API with a real-time callback model. |
+| Pitch/time processing | Signalsmith Stretch | C++ pitch/time library with pitch transpose and formant-compensation controls. |
+| Presets | App-owned configuration | Female-style and male-style values remain editable without downloading models. |
+| Installer | To be selected after a working Windows build | Installer choice must support a single app, dependency notices, upgrade, repair, and uninstall. |
+
+These are source-backed candidate selections, not yet validated in a Kanako build. Exact versions, Windows toolchain, callback design, buffer sizes, and device support must be pinned and tested before release.
+
+## Audio pipeline
+
+1. Enumerate Windows audio input and output devices.
+2. Open the selected input and output streams at a supported sample rate.
+3. Capture microphone frames in the audio callback.
+4. Process frames using preallocated buffers and the selected DSP preset.
+5. Send processed frames to the selected output stream.
+6. Publish meter values to the UI through a thread-safe mechanism; never update Qt widgets directly from the audio callback.
+7. Stop and release streams safely when the user stops, changes devices, or closes the app.
+
+The callback must avoid blocking operations, file/network access, dynamic allocation, and UI calls. Device errors and stream restarts must be handled outside the callback.
+
+## Initial preset design
+
+The first preset set will include:
+- Female-style: moderate upward pitch shift with a separately tuned formant/timbre adjustment.
+- Male-style: moderate downward pitch shift with a separately tuned formant/timbre adjustment.
+- Neutral/bypass: original microphone signal for comparison and troubleshooting.
+
+Exact semitone and formant values are tuning parameters, not final values. They must be selected through listening tests to avoid chipmunk, metallic, robotic, or garbled speech.
 
 ## Data and privacy
 
-- Microphone audio should be processed locally by default.
-- Do not upload voice recordings or model inputs to a remote service.
-- Store settings locally and explain where recordings are saved.
-- Do not collect telemetry unless it is clearly disclosed and optional.
+- Microphone audio is processed locally.
+- No voice recordings are uploaded.
+- No telemetry unless it is clearly disclosed and optional.
+- Any diagnostic recording is saved only when the user explicitly starts recording.
 
-## Licensing
+## Licensing and redistribution
 
-Review the license of every library, runtime, model, plugin, codec, and driver. A dependency being free to download does not automatically mean it may be bundled or redistributed. Keep a dependency/license inventory before packaging.
+- Kanako application source is MIT licensed.
+- Qt 6 is intended to be used under its applicable open-source LGPL terms with the required notices and compliant dynamic linking; verify the exact Qt modules and obligations before packaging.
+- PortAudio and Signalsmith Stretch are MIT-licensed upstream projects. Include their copyright and license notices when bundled.
+- Keep a version-pinned dependency inventory and ship third-party notices with every release.
+- Do not bundle any model, driver, codec, or runtime until its license and redistribution terms are verified.
+
+## Not yet verified
+
+- No Kanako executable has been built.
+- No real microphone/speaker stream has been tested through the proposed stack.
+- No latency, dropout, clipping, or voice-quality results exist yet.
+- No installer or virtual microphone driver has been selected.
