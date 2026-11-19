@@ -25,6 +25,10 @@ private:
     void stopAudio();
     void updateInputMeter();
     void setAudioStatus(const QString &message, bool isError = false);
+    void startRecording();
+    void pauseOrResumeRecording();
+    void stopRecording();
+    void updateRecordingTimer();
 
     AudioEngine audioEngine_;
     QComboBox *inputDeviceCombo_ = nullptr;
@@ -43,6 +47,12 @@ private:
     QPushButton *refreshDevicesButton_ = nullptr;
     QPushButton *startButton_ = nullptr;
     QPushButton *stopButton_ = nullptr;
+    QPushButton *recordButton_ = nullptr;
+    QPushButton *pauseRecordingButton_ = nullptr;
+    QPushButton *stopRecordingButton_ = nullptr;
+    QLabel *recordingStatusLabel_ = nullptr;
     QTimer *meterTimer_ = nullptr;
+    QTimer *recordingTimer_ = nullptr;
+    int recordingSeconds_ = 0;
     bool portAudioInitialized_ = false;
 };
