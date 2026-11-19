@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+.env
+.env.*
+
+# Build outputs
+build/
+dist/
+out/
+target/
+*.spec
+*.egg-info/
+
+# Native/desktop build artifacts
+node_modules/
+.pnpm-store/
+.tauri/
+*.log
+
+# IDE/editor
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Audio recordings and user data
+recordings/
+*.wav
+*.mp3
+*.flac
+*.ogg
+
+# Model weights and downloaded runtime assets
+models/
+*.onnx
+*.pth
+*.pt
+*.safetensors
+*.ckpt
+
+# Secrets and signing material
+*.pem
+*.pfx
+*.p12
+*.key
