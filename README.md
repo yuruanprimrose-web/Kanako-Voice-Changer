@@ -13,9 +13,9 @@ Kanako is being developed as one integrated Windows desktop voice changer. The g
 
 ## Current development status
 
-The repository now contains the initial Qt 6 desktop window source, CMake configuration, Windows CI build workflow, and PortAudio device enumeration code.
+The repository now contains the Qt 6 desktop window source, CMake configuration, Windows CI workflow, PortAudio device enumeration, and a microphone-to-output passthrough implementation with an input-level meter.
 
-**This is not a usable voice changer yet.** The first code milestone is only a development shell. Live microphone capture/playback, audio meters, pitch/formant processing, real voice presets, installer, and release tests are still pending. The Start button and preset selector are intentionally disabled until the real audio pipeline is implemented.
+**This is not a finished voice changer yet.** The passthrough code has been committed but has not yet passed a Windows build or real microphone/speaker test. Pitch/formant processing and working female-style/male-style presets are not connected; the preset selector remains disabled. Installer and release testing are also pending.
 
 The Windows CI workflow is intended to compile the current source on GitHub Actions. A successful build must be confirmed from an actual workflow run before it is reported as PASS.
 
