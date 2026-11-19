@@ -68,9 +68,10 @@ Acceptance: a user can install, launch, update, and uninstall Kanako without man
 - [x] Review VB-Audio VB-CABLE redistribution and professional-use licensing conditions.
 - [x] Record the driver options, routing risks, and production release gates in [Virtual Microphone Plan](VIRTUAL_MICROPHONE_PLAN.md).
 - [ ] Verify a legally usable, correctly signed virtual-cable package and exact redistribution terms before bundling anything.
-- [ ] Implement processed-audio routing to a Windows virtual recording endpoint.
-- [ ] Design simultaneous virtual-microphone output and physical-speaker monitoring without changing the established gain behavior.
-- [ ] Add device-loss, startup/shutdown, buffering, and recovery handling.
+- [x] Implement optional processed-audio routing to a Windows virtual recording endpoint using VB-CABLE playback output and a second PortAudio stream (prototype; hardware validation pending).
+- [x] Implement simultaneous virtual-microphone output and physical-speaker monitoring without changing the established gain behavior (prototype; independent device-clock stability pending).
+- [x] Add bounded callback-to-callback buffering and basic startup/shutdown error handling.
+- [ ] Complete device-loss recovery, long-duration clock-drift handling, and overflow/underflow diagnostics.
 - [ ] Test endpoint installation/removal on a real Windows machine.
 - [ ] Verify processed speech is selectable and intelligible in Discord, Zoom, and OBS.
 - [ ] Verify YouTube and Facebook live workflows separately before claiming compatibility.
