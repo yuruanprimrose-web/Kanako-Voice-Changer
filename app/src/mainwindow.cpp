@@ -8,6 +8,7 @@
 #include <QProgressBar>
 #include <QPushButton>
 #include <QSettings>
+#include <QSignalBlocker>
 #include <QTimer>
 #include <QVBoxLayout>
 #include <QWidget>
@@ -159,6 +160,8 @@ void MainWindow::initializeAudioDevices()
 
 void MainWindow::populateDeviceLists()
 {
+    const QSignalBlocker inputSignals(inputDeviceCombo_);
+    const QSignalBlocker outputSignals(outputDeviceCombo_);
     inputDeviceCombo_->clear();
     outputDeviceCombo_->clear();
     const PaDeviceIndex deviceCount = Pa_GetDeviceCount();
