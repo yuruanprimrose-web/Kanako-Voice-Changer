@@ -3,9 +3,11 @@
 #include <QComboBox>
 #include <QFormLayout>
 #include <QGroupBox>
+#include <QHBoxLayout>
 #include <QLabel>
 #include <QProgressBar>
 #include <QPushButton>
+#include <QSettings>
 #include <QTimer>
 #include <QVBoxLayout>
 #include <QWidget>
@@ -13,22 +15,42 @@
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 {
     setWindowTitle("Kanako Voice Changer");
-    setMinimumSize(640, 480);
-    resize(760, 560);
+    setMinimumSize(680, 520);
+    resize(780, 600);
+    setStyleSheet(R"(
+        QMainWindow { background: #10131b; }
+        QWidget { color: #edf0f7; font-family: "Segoe UI"; font-size: 10pt; }
+        QLabel#brandTitle { color: #ffffff; font-size: 25pt; font-weight: 700; letter-spacing: 1px; }
+        QLabel#brandSubtitle { color: #aab4c8; font-size: 11pt; }
+        QGroupBox { border: 1px solid #30394b; border-radius: 12px; margin-top: 14px; padding: 18px 14px 12px 14px; font-weight: 600; color: #c9d5ea; }
+        QGroupBox::title { subcontrol-origin: margin; left: 14px; padding: 0 6px; }
+        QComboBox { background: #1a2130; border: 1px solid #3b465b; border-radius: 7px; padding: 9px 10px; min-height: 20px; selection-background-color: #6855d9; }
+        QComboBox QAbstractItemView { background: #1a2130; selection-background-color: #6855d9; }
+        QPushButton { background: #252d3d; border: 1px solid #414d64; border-radius: 8px; padding: 11px 16px; font-weight: 600; }
+        QPushButton:hover { background: #303b50; }
+        QPushButton:disabled { color: #70798a; background: #1a202c; border-color: #2c3443; }
+        QPushButton#startButton { background: #6855d9; border-color: #7868e4; color: white; }
+        QPushButton#startButton:hover { background: #7968e9; }
+        QPushButton#stopButton { background: #672f3b; border-color: #8b4656; }
+        QProgressBar { background: #1a2130; border: 1px solid #30394b; border-radius: 5px; min-height: 12px; max-height: 12px; }
+        QProgressBar::chunk { background: #37c99a; border-radius: 4px; }
+        QLabel#statusLabel { background: #1a2130; border: 1px solid #30394b; border-radius: 8px; padding: 10px; color: #b9c6dc; }
+        QLabel#helperText { color: #8f9bb0; font-size: 9pt; }
+    )");
+
     auto *central = new QWidget(this);
     auto *rootLayout = new QVBoxLayout(central);
-    rootLayout->setContentsMargins(28, 24, 28, 24);
+    rootLayout->setContentsMargins(30, 26, 30, 26);
     rootLayout->setSpacing(16);
 
     auto *heading = new QLabel("KANAKO", central);
-    QFont headingFont = heading->font();
-    headingFont.setPointSize(22);
-    headingFont.setBold(true);
-    heading->setFont(headingFont);
-    auto *subtitle = new QLabel("Voice Changer", central);
+    heading->setObjectName("brandTitle");
+    auto *subtitle = new QLabel("VOICE CHANGER  /  REAL-TIME AUDIO", central);
+    subtitle->setObjectName("brandSubtitle");
 
-    auto *deviceGroup = new QGroupBox("Audio devices", central);
+    auto *deviceGroup = new QGroupBox("AUDIO DEVICES", central);
     auto *deviceLayout = new QFormLayout(deviceGroup);
+    deviceLayout->setVerticalSpacing(12);
     inputDeviceCombo_ = new QComboBox(deviceGroup);
     inputDeviceCombo_->setObjectName("inputDeviceCombo");
     outputDeviceCombo_ = new QComboBox(deviceGroup);
@@ -36,16 +58,17 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     deviceLayout->addRow("Microphone", inputDeviceCombo_);
     deviceLayout->addRow("Speaker / Output", outputDeviceCombo_);
 
-    auto *presetGroup = new QGroupBox("Voice preset", central);
+    auto *presetGroup = new QGroupBox("VOICE PRESET", central);
     auto *presetLayout = new QFormLayout(presetGroup);
     presetCombo_ = new QComboBox(presetGroup);
     presetCombo_->setObjectName("voicePresetCombo");
     presetCombo_->addItem("Neutral / Bypass", "neutral");
     presetCombo_->addItem("Female-style", "female");
     presetCombo_->addItem("Male-style", "male");
-    presetLayout->addRow("Select preset", presetCombo_);
+    presetLayout->addRow("Choose your voice", presetCombo_);
 
-    auto *meterLabel = new QLabel("Microphone input level", central);
+    auto *meterLabel = new QLabel("MICROPHONE INPUT LEVEL", central);
+    meterLabel->setStyleSheet("color: #aab4c8; font-size: 9pt; font-weight: 600;");
     inputMeter_ = new QProgressBar(central);
     inputMeter_->setObjectName("inputLevelMeter");
     inputMeter_->setRange(0, 100);
@@ -53,19 +76,28 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     inputMeter_->setTextVisible(false);
 
     audioStatusLabel_ = new QLabel("Initializing audio devices...", central);
+    audioStatusLabel_->setObjectName("statusLabel");
     audioStatusLabel_->setWordWrap(true);
+
+    refreshDevicesButton_ = new QPushButton("Refresh devices", central);
+    refreshDevicesButton_->setObjectName("refreshDevicesButton");
     startButton_ = new QPushButton("Start voice changer", central);
     startButton_->setObjectName("startButton");
     stopButton_ = new QPushButton("Stop", central);
     stopButton_->setObjectName("stopButton");
     stopButton_->setEnabled(false);
 
-    auto *buttonLayout = new QVBoxLayout();
-    buttonLayout->addWidget(startButton_);
-    buttonLayout->addWidget(stopButton_);
+    auto *buttonLayout = new QHBoxLayout();
+    buttonLayout->setSpacing(10);
+    buttonLayout->addWidget(refreshDevicesButton_);
+    buttonLayout->addStretch();
+    buttonLayout->addWidget(startButton_, 2);
+    buttonLayout->addWidget(stopButton_, 1);
+
     auto *note = new QLabel(
-        "Development build — non-AI pitch and formant presets are connected as an initial prototype. Use headphones to reduce acoustic feedback.",
+        "Tip: Use headphones to prevent feedback. Voice presets are local DSP effects; the final sound depends on your microphone and voice.",
         central);
+    note->setObjectName("helperText");
     note->setWordWrap(true);
 
     rootLayout->addWidget(heading);
@@ -82,6 +114,14 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 
     connect(presetCombo_, qOverload<int>(&QComboBox::currentIndexChanged), this, [this](int index) {
         audioEngine_.setPreset(static_cast<VoiceProcessor::Preset>(index));
+        saveSettings();
+    });
+    connect(inputDeviceCombo_, qOverload<int>(&QComboBox::currentIndexChanged), this, [this](int) { saveSettings(); });
+    connect(outputDeviceCombo_, qOverload<int>(&QComboBox::currentIndexChanged), this, [this](int) { saveSettings(); });
+    connect(refreshDevicesButton_, &QPushButton::clicked, this, [this]() {
+        populateDeviceLists();
+        restoreSettings();
+        setAudioStatus("Audio device list refreshed.");
     });
     connect(startButton_, &QPushButton::clicked, this, &MainWindow::startAudio);
     connect(stopButton_, &QPushButton::clicked, this, &MainWindow::stopAudio);
@@ -107,12 +147,13 @@ void MainWindow::initializeAudioDevices()
     }
     portAudioInitialized_ = true;
     populateDeviceLists();
+    restoreSettings();
     const PaDeviceIndex deviceCount = Pa_GetDeviceCount();
     if (deviceCount < 0) {
         setAudioStatus(QString("Could not enumerate audio devices: %1").arg(Pa_GetErrorText(deviceCount)), true);
         return;
     }
-    setAudioStatus(QString("Audio engine ready. Found %1 device(s). Select your microphone and output, then start passthrough.")
+    setAudioStatus(QString("Audio engine ready. Found %1 device(s). Choose a voice preset and start.")
                        .arg(deviceCount));
 }
 
@@ -124,6 +165,7 @@ void MainWindow::populateDeviceLists()
     if (deviceCount < 0) {
         inputDeviceCombo_->addItem("Audio devices unavailable");
         outputDeviceCombo_->addItem("Audio devices unavailable");
+        startButton_->setEnabled(false);
         return;
     }
     for (PaDeviceIndex index = 0; index < deviceCount; ++index) {
@@ -137,6 +179,27 @@ void MainWindow::populateDeviceLists()
     if (outputDeviceCombo_->count() == 0) outputDeviceCombo_->addItem("No output device detected");
     startButton_->setEnabled(inputDeviceCombo_->currentData().isValid()
                              && outputDeviceCombo_->currentData().isValid());
+}
+
+void MainWindow::restoreSettings()
+{
+    QSettings settings("Yuruan Primrose", "Kanako Voice Changer");
+    const int inputIndex = inputDeviceCombo_->findText(settings.value("audio/inputDevice").toString());
+    const int outputIndex = outputDeviceCombo_->findText(settings.value("audio/outputDevice").toString());
+    const int presetIndex = presetCombo_->findData(settings.value("audio/voicePreset", "neutral"));
+    if (inputIndex >= 0) inputDeviceCombo_->setCurrentIndex(inputIndex);
+    if (outputIndex >= 0) outputDeviceCombo_->setCurrentIndex(outputIndex);
+    if (presetIndex >= 0) presetCombo_->setCurrentIndex(presetIndex);
+}
+
+void MainWindow::saveSettings()
+{
+    QSettings settings("Yuruan Primrose", "Kanako Voice Changer");
+    if (inputDeviceCombo_->currentData().isValid())
+        settings.setValue("audio/inputDevice", inputDeviceCombo_->currentText());
+    if (outputDeviceCombo_->currentData().isValid())
+        settings.setValue("audio/outputDevice", outputDeviceCombo_->currentText());
+    settings.setValue("audio/voicePreset", presetCombo_->currentData().toString());
 }
 
 void MainWindow::startAudio()
@@ -154,10 +217,11 @@ void MainWindow::startAudio()
     }
     inputDeviceCombo_->setEnabled(false);
     outputDeviceCombo_->setEnabled(false);
+    refreshDevicesButton_->setEnabled(false);
     startButton_->setEnabled(false);
     stopButton_->setEnabled(true);
     meterTimer_->start();
-    setAudioStatus("Voice processing is running. Use headphones to prevent feedback. The current pitch/formant settings are initial tuning values.");
+    setAudioStatus("Voice processing is running. Use headphones to prevent feedback.");
 }
 
 void MainWindow::stopAudio()
@@ -167,6 +231,7 @@ void MainWindow::stopAudio()
     inputMeter_->setValue(0);
     inputDeviceCombo_->setEnabled(true);
     outputDeviceCombo_->setEnabled(true);
+    refreshDevicesButton_->setEnabled(true);
     startButton_->setEnabled(inputDeviceCombo_->currentData().isValid()
                              && outputDeviceCombo_->currentData().isValid());
     stopButton_->setEnabled(false);
@@ -181,5 +246,7 @@ void MainWindow::updateInputMeter()
 void MainWindow::setAudioStatus(const QString &message, bool isError)
 {
     audioStatusLabel_->setText(message);
-    audioStatusLabel_->setStyleSheet(isError ? "color: #b42318;" : "color: palette(text);");
+    audioStatusLabel_->setStyleSheet(isError
+        ? "QLabel#statusLabel { color: #ff8b8b; border-color: #9b4545; }"
+        : "QLabel#statusLabel { color: #b9c6dc; border-color: #30394b; }");
 }
