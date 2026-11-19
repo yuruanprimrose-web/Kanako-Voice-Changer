@@ -21,7 +21,8 @@ The current working baseline is **Build #52**.
 - [x] Microphone and output gain behavior — user-tested.
 - [x] WAV recording pipeline automated smoke test — passed in CI.
 - [x] WAV recording with audible voice — explicitly confirmed by the user on Windows.
-- [ ] Virtual microphone endpoint — not implemented yet.
+- [x] Optional VB-CABLE output routing prototype is implemented in source with a separate PortAudio output stream and bounded fan-out buffer; automated buffer tests are included in CI.
+- [ ] Real Windows virtual microphone routing, Discord/Zoom/OBS/YouTube/Facebook compatibility, and long-duration stability — pending manual testing.
 - [ ] Discord, Zoom, OBS, YouTube, and Facebook input compatibility — not yet tested.
 - [ ] Production installer, upgrade, repair, and uninstall flow — not yet completed.
 
@@ -31,7 +32,7 @@ The current working baseline is **Build #52**.
 
 The next development priority is a Windows recording endpoint that exposes Kanako's processed voice to other applications. Driver options, redistribution terms, routing design, signing requirements, and test gates are documented in [Virtual Microphone Plan](docs/VIRTUAL_MICROPHONE_PLAN.md).
 
-No third-party driver is bundled and no custom driver is claimed to exist yet. The plan prioritizes a legally compliant prototype path while keeping a future Kanako-owned driver possible.
+No third-party driver is bundled. The user must install VB-CABLE separately from the official VB-Audio site for the first hardware test. The prototype is not yet verified on a real Windows endpoint; no application compatibility is claimed. The plan keeps a future Kanako-owned driver possible.
 
 ## Build configuration
 
