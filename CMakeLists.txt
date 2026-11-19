@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.21)
+cmake_minimum_required(VERSION 3.24)
 project(KanakoVoiceChanger VERSION 0.1.0 LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -18,6 +18,15 @@ FetchContent_Declare(portaudio
     GIT_SHALLOW TRUE
 )
 FetchContent_MakeAvailable(portaudio)
+
+FetchContent_Declare(signalsmith-stretch
+    GIT_REPOSITORY https://github.com/Signalsmith-Audio/signalsmith-stretch.git
+    GIT_TAG 1.4.0
+    GIT_SHALLOW TRUE
+)
+FetchContent_MakeAvailable(signalsmith-stretch)
+
+add_subdirectory(voice-engine)
 
 if(TARGET portaudio_static)
     set(KANAKO_PORTAUDIO_TARGET portaudio_static)
