@@ -1,68 +1,72 @@
 # Kanako Voice Changer — Roadmap
 
-This roadmap distinguishes repository setup from implemented and tested functionality. Items remain pending until there is code and evidence from builds/tests.
+This roadmap separates repository/documentation work from implemented and tested functionality. An item is not complete until source code exists and the relevant build/test evidence is recorded.
 
 ## Phase 0 — Repository foundation
 
 - [x] Create public GitHub repository.
 - [x] Add project overview and initial documentation.
-- [x] Define a proposed repository layout.
-- [ ] Select and add an explicit open-source license.
-- [ ] Confirm desktop framework and audio/voice-engine architecture.
+- [x] Define repository layout.
+- [x] Select and add the MIT license for Kanako's own source.
+- [x] Record the non-AI DSP direction and candidate technology stack.
 - [ ] Add contribution and security-reporting guidance.
+- [ ] Pin and audit exact third-party dependency versions and notices.
 
-## Phase 1 — Desktop application foundation
+## Phase 1 — Integrated desktop application foundation
 
-- [ ] Create the integrated Kanako Voice Changer desktop application.
-- [ ] Establish application identity, window behavior, and settings storage.
+- [ ] Create the Qt 6 Widgets Windows application.
+- [ ] Establish Kanako application identity, window behavior, and local settings storage.
 - [ ] Add microphone and speaker device enumeration.
-- [ ] Add audio-level meter with reliable device refresh.
-- [ ] Add clear error messages for missing devices and engine failures.
+- [ ] Add an input-level meter with reliable device refresh.
+- [ ] Add clear errors for missing devices and audio initialization failures.
 
-Acceptance: application launches on a clean supported Windows installation; devices are listed correctly; the UI remains responsive.
+Acceptance: the integrated Kanako window launches on a supported Windows installation, lists devices correctly, and remains responsive. No separate client/demo window is launched.
 
 ## Phase 2 — Audio pipeline
 
-- [ ] Implement microphone capture and output playback.
+- [ ] Implement microphone capture and speaker playback through PortAudio.
 - [ ] Implement start/stop lifecycle and safe device switching.
-- [ ] Add recording and WAV playback for diagnostics.
+- [ ] Add neutral/bypass monitoring.
+- [ ] Add recording and WAV playback for diagnostics (only on explicit user action).
 - [ ] Test latency, audio dropouts, clipping, and device disconnection.
 
-Acceptance: microphone input can be monitored/recorded and played back reliably without voice conversion enabled.
+Acceptance: clean microphone audio can pass through the app reliably with conversion disabled.
 
-## Phase 3 — Voice presets and conversion
+## Phase 3 — Built-in voice presets (non-AI DSP)
 
-- [ ] Select a locally runnable voice-conversion engine.
-- [ ] Verify the engine's license and redistribution terms.
-- [ ] Define female and male preset categories.
-- [ ] Add model download/import and integrity checks.
-- [ ] Connect preset selection to the live audio pipeline.
-- [ ] Test intelligibility, latency, CPU/GPU compatibility, and failure recovery.
+- [ ] Integrate and compile the pitch/formant processing library.
+- [ ] Implement the DSP processing adapter with preallocated callback buffers.
+- [ ] Add female-style, male-style, and neutral/bypass presets.
+- [ ] Tune pitch and formant parameters using speech listening tests.
+- [ ] Verify intelligibility, latency, CPU usage, and failure recovery.
 
-Acceptance: each shipped or downloadable preset is legally distributable or clearly documented as user-supplied; speech remains intelligible in supported configurations.
+Acceptance: each preset works in the live microphone-to-output path, speech remains understandable, and the result is not just a UI selection or an unconnected demo.
 
 ## Phase 4 — Packaging and installation
 
-- [ ] Package all required runtime components into the Kanako installation flow.
-- [ ] Avoid exposing unnecessary command windows during normal installation/use.
+- [ ] Select installer technology after the app builds reliably.
+- [ ] Package the integrated app and required runtime components.
+- [ ] Avoid unnecessary visible command windows during normal use.
 - [ ] Add a real progress indicator tied to actual installation stages.
 - [ ] Add upgrade, repair, and uninstall behavior.
+- [ ] Include all required third-party license notices.
 - [ ] Test on a clean Windows machine or clean VM.
 
-Acceptance: a user can install, launch, update, and uninstall Kanako without manually assembling separate demo applications.
+Acceptance: a user can install, launch, update, and uninstall Kanako without manually assembling separate applications.
 
 ## Phase 5 — Quality and release
 
 - [ ] Add automated tests and a Windows build workflow.
-- [ ] Run security and dependency-license checks.
-- [ ] Test microphone/speaker selection and common device changes.
-- [ ] Test female and male presets on supported hardware.
+- [ ] Run dependency/license and security checks.
+- [ ] Test device selection and common device changes.
+- [ ] Test all presets on supported hardware.
 - [ ] Publish a release only after the installer and test results are verified.
 
 ## Scope guardrails
 
-- No paid API requirement.
-- No subscription or premium feature lock.
+- No AI engine, model training, or AI model download.
+- No paid API requirement, subscription, or premium feature lock.
 - No separate Voice Changer Client Demo application.
 - No proprietary VoiceWave code, assets, or binaries copied into Kanako.
 - Do not claim compatibility with hardware or operating systems that have not been tested.
+- Do not claim a feature is complete based only on a mock UI or placeholder implementation.
