@@ -1,59 +1,62 @@
 # Kanako Voice Changer
 
-Kanako is being developed as one integrated Windows desktop voice changer. The current development build provides microphone and output device selection, live microphone monitoring, an input-level meter, and initial non-AI pitch/formant presets.
+Kanako is one integrated Windows desktop voice changer using local, non-AI digital signal processing. The application includes Neutral/Female/Male-style presets, adjustable Pitch and Formant controls, microphone/output gain, and WAV recording.
 
 ## Product commitments
 
 - One Kanako application — no separate Voice Changer Client Demo.
-- Non-AI digital signal processing for the initial voice presets.
+- Non-AI DSP; no model training, AI inference engine, or cloud voice upload.
 - No paid cloud API, subscription, or premium feature lock.
-- Local microphone processing; no voice upload.
+- Local microphone processing and user-controlled WAV recording.
 - No copied proprietary VoiceWave code, assets, or binaries.
 - Kanako's own source is MIT licensed. Third-party components retain their own licenses.
 
 ## Current verified status
 
-- [x] Qt 6 desktop application source is present.
-- [x] PortAudio microphone and output device enumeration is present.
-- [x] Microphone-to-output audio callback is present.
-- [x] Input-level meter and start/stop controls are present.
-- [x] Neutral, Female-style, and Male-style DSP preset selections are connected to the processing code.
-- [x] GitHub Actions Windows x64 build completed successfully (run #22).
-- [x] A portable Windows x64 build artifact was uploaded by that run.
-- [ ] The downloaded application has not yet been launched and tested on a user's Windows PC.
-- [ ] Real microphone/speaker behavior, voice quality, latency, and stability have not yet been verified on target hardware.
-- [ ] A proper Windows installer, upgrade flow, and uninstall flow are not yet available.
+The current working baseline is **Build #52**.
 
-**Important:** A successful CI compile proves that the source compiled and the portable build folder was produced. It does not prove real-device audio works correctly or that the voice presets sound natural. Treat this as an early development build, not a finished release.
+- [x] Windows x64 GitHub Actions build and portable artifact completed successfully (Build #52, commit `ea359548ae635ebbb8a1e060c0649478ef2b4380`).
+- [x] Neutral, Female-style, and Male-style presets — user-tested.
+- [x] Adjustable Pitch and Formant sliders — user-tested.
+- [x] Microphone and output gain behavior — user-tested.
+- [x] WAV recording pipeline automated smoke test — passed in CI.
+- [x] WAV recording with audible voice — explicitly confirmed by the user on Windows.
+- [ ] Virtual microphone endpoint — not implemented yet.
+- [ ] Discord, Zoom, OBS, YouTube, and Facebook input compatibility — not yet tested.
+- [ ] Production installer, upgrade, repair, and uninstall flow — not yet completed.
+
+**Important:** CI success confirms the automated build/tests only. Real-device and third-party application compatibility must be tested on Windows before being claimed.
+
+## Virtual microphone investigation
+
+The next development priority is a Windows recording endpoint that exposes Kanako's processed voice to other applications. Driver options, redistribution terms, routing design, signing requirements, and test gates are documented in [Virtual Microphone Plan](docs/VIRTUAL_MICROPHONE_PLAN.md).
+
+No third-party driver is bundled and no custom driver is claimed to exist yet. The plan prioritizes a legally compliant prototype path while keeping a future Kanako-owned driver possible.
 
 ## Build configuration
 
 - C++17
 - Qt 6.8.3 Widgets
 - CMake
-- PortAudio 19.7.0 for audio device access
-- Signalsmith Stretch 1.4.0 for pitch/time and formant processing
+- PortAudio 19.7.0
+- Signalsmith Stretch 1.4.0
 
-Exact dependency versions and redistribution notices must be checked before packaging. See [the architecture decision](docs/ARCHITECTURE.md), [roadmap](docs/ROADMAP.md), and [third-party license inventory](docs/THIRD_PARTY_LICENSES.md).
+See [architecture](docs/ARCHITECTURE.md), [roadmap](docs/ROADMAP.md), [testing notes](docs/TESTING.md), [third-party license inventory](docs/THIRD_PARTY_LICENSES.md), and [virtual microphone plan](docs/VIRTUAL_MICROPHONE_PLAN.md).
 
 ## Repository layout
 
 - `app/` — integrated desktop application source
-- `audio/` — audio pipeline and device handling
 - `voice-engine/` — non-AI DSP processing
-- `voice-models/` — reserved; no AI models are planned for the initial product
-- `soundboard/` — optional soundboard feature
-- `effects/` — audio effects and presets
-- `drivers/` — optional driver integration, subject to licensing
-- `installer/` — Windows packaging
+- `drivers/` — reserved for future driver integration; no Kanako virtual driver is implemented yet
+- `installer/` — future Windows packaging
 - `tests/` — automated and manual test assets
 - `docs/` — architecture, roadmap, testing, and license records
 
 ## Testing the current portable build
 
-Download the `Kanako-Voice-Changer-Windows-x64` artifact from the latest successful Windows build in GitHub Actions. Extract the entire ZIP to a normal folder and run `Kanako Voice Changer.exe` from inside that extracted folder. Do not move the EXE out by itself because the Qt runtime files and plugin folders must stay beside it.
+Download the `Kanako-Voice-Changer-Windows-x64` artifact from the latest successful Windows build in GitHub Actions. Extract the entire ZIP to a normal folder and run `Kanako Voice Changer.exe` from inside that extracted folder. Keep the Qt runtime files and plugin folders beside the EXE.
 
-For the first test, select your microphone and speaker, leave the preset on Neutral / Bypass, and press Start voice changer. Use headphones to reduce feedback. Then test Female-style and Male-style briefly at a safe volume. Stop the audio before changing devices. Report any error text and whether you hear clean audio, altered audio, or silence.
+Use headphones during live monitoring to reduce feedback. Test Neutral first, then Female-style and Male-style at a safe volume. WAV recording can be started while the voice changer is running; stop recording to choose where to save the file.
 
 ## License
 
