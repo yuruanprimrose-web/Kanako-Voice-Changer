@@ -8,6 +8,7 @@
 #include <QProgressBar>
 #include <QPushButton>
 #include <QSettings>
+#include <QSlider>
 #include <QSignalBlocker>
 #include <QTimer>
 #include <QVBoxLayout>
@@ -33,6 +34,9 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
         QPushButton#startButton { background: #6855d9; border-color: #7868e4; color: white; }
         QPushButton#startButton:hover { background: #7968e9; }
         QPushButton#stopButton { background: #672f3b; border-color: #8b4656; }
+        QSlider::groove:horizontal { height: 7px; background: #30394b; border-radius: 3px; }
+        QSlider::sub-page:horizontal { background: #6855d9; border-radius: 3px; }
+        QSlider::handle:horizontal { background: #ffffff; border: 2px solid #6855d9; width: 16px; margin: -6px 0; border-radius: 9px; }
         QProgressBar { background: #1a2130; border: 1px solid #30394b; border-radius: 5px; min-height: 12px; max-height: 12px; }
         QProgressBar::chunk { background: #37c99a; border-radius: 4px; }
         QLabel#statusLabel { background: #1a2130; border: 1px solid #30394b; border-radius: 8px; padding: 10px; color: #b9c6dc; }
@@ -67,6 +71,39 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     presetCombo_->addItem("Female-style", "female");
     presetCombo_->addItem("Male-style", "male");
     presetLayout->addRow("Choose your voice", presetCombo_);
+
+    auto *gainGroup = new QGroupBox("INPUT & OUTPUT LEVELS", central);
+    auto *gainLayout = new QFormLayout(gainGroup);
+    microphoneGainSlider_ = new QSlider(Qt::Horizontal, gainGroup);
+    microphoneGainSlider_->setObjectName("microphoneGainSlider");
+    microphoneGainSlider_->setRange(0, 300);
+    microphoneGainSlider_->setSingleStep(5);
+    microphoneGainSlider_->setValue(150);
+    microphoneGainValue_ = new QLabel("150%", gainGroup);
+    auto *micGainRow = new QWidget(gainGroup);
+    auto *micGainRowLayout = new QHBoxLayout(micGainRow);
+    micGainRowLayout->setContentsMargins(0, 0, 0, 0);
+    micGainRowLayout->addWidget(microphoneGainSlider_, 1);
+    micGainRowLayout->addWidget(microphoneGainValue_);
+    gainLayout->addRow("Microphone gain", micGainRow);
+
+    outputGainSlider_ = new QSlider(Qt::Horizontal, gainGroup);
+    outputGainSlider_->setObjectName("outputGainSlider");
+    outputGainSlider_->setRange(0, 300);
+    outputGainSlider_->setSingleStep(5);
+    outputGainSlider_->setValue(150);
+    outputGainValue_ = new QLabel("150%", gainGroup);
+    auto *outputGainRow = new QWidget(gainGroup);
+    auto *outputGainRowLayout = new QHBoxLayout(outputGainRow);
+    outputGainRowLayout->setContentsMargins(0, 0, 0, 0);
+    outputGainRowLayout->addWidget(outputGainSlider_, 1);
+    outputGainRowLayout->addWidget(outputGainValue_);
+    gainLayout->addRow("Speaker / output volume", outputGainRow);
+
+    auto *gainNote = new QLabel("Increase microphone gain if your input is quiet. Increase output volume if the processed voice is quiet. High levels may cause distortion.", gainGroup);
+    gainNote->setObjectName("helperText");
+    gainNote->setWordWrap(true);
+    gainLayout->addRow(gainNote);
 
     auto *meterLabel = new QLabel("MICROPHONE INPUT LEVEL", central);
     meterLabel->setStyleSheet("color: #aab4c8; font-size: 9pt; font-weight: 600;");
@@ -105,6 +142,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     rootLayout->addWidget(subtitle);
     rootLayout->addWidget(deviceGroup);
     rootLayout->addWidget(presetGroup);
+    rootLayout->addWidget(gainGroup);
     rootLayout->addWidget(meterLabel);
     rootLayout->addWidget(inputMeter_);
     rootLayout->addWidget(audioStatusLabel_);
@@ -115,6 +153,16 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 
     connect(presetCombo_, qOverload<int>(&QComboBox::currentIndexChanged), this, [this](int index) {
         audioEngine_.setPreset(static_cast<VoiceProcessor::Preset>(index));
+        saveSettings();
+    });
+    connect(microphoneGainSlider_, &QSlider::valueChanged, this, [this](int value) {
+        audioEngine_.setMicrophoneGain(static_cast<float>(value) / 100.0F);
+        microphoneGainValue_->setText(QString("%1%").arg(value));
+        saveSettings();
+    });
+    connect(outputGainSlider_, &QSlider::valueChanged, this, [this](int value) {
+        audioEngine_.setOutputGain(static_cast<float>(value) / 100.0F);
+        outputGainValue_->setText(QString("%1%").arg(value));
         saveSettings();
     });
     connect(inputDeviceCombo_, qOverload<int>(&QComboBox::currentIndexChanged), this, [this](int) { saveSettings(); });
@@ -190,9 +238,17 @@ void MainWindow::restoreSettings()
     const int inputIndex = inputDeviceCombo_->findText(settings.value("audio/inputDevice").toString());
     const int outputIndex = outputDeviceCombo_->findText(settings.value("audio/outputDevice").toString());
     const int presetIndex = presetCombo_->findData(settings.value("audio/voicePreset", "neutral"));
+    const int microphoneGain = settings.value("audio/microphoneGain", 150).toInt();
+    const int outputGain = settings.value("audio/outputGain", 150).toInt();
     if (inputIndex >= 0) inputDeviceCombo_->setCurrentIndex(inputIndex);
     if (outputIndex >= 0) outputDeviceCombo_->setCurrentIndex(outputIndex);
     if (presetIndex >= 0) presetCombo_->setCurrentIndex(presetIndex);
+    microphoneGainSlider_->setValue(qBound(0, microphoneGain, 300));
+    outputGainSlider_->setValue(qBound(0, outputGain, 300));
+    audioEngine_.setMicrophoneGain(static_cast<float>(microphoneGainSlider_->value()) / 100.0F);
+    audioEngine_.setOutputGain(static_cast<float>(outputGainSlider_->value()) / 100.0F);
+    microphoneGainValue_->setText(QString("%1%").arg(microphoneGainSlider_->value()));
+    outputGainValue_->setText(QString("%1%").arg(outputGainSlider_->value()));
 }
 
 void MainWindow::saveSettings()
@@ -203,6 +259,8 @@ void MainWindow::saveSettings()
     if (outputDeviceCombo_->currentData().isValid())
         settings.setValue("audio/outputDevice", outputDeviceCombo_->currentText());
     settings.setValue("audio/voicePreset", presetCombo_->currentData().toString());
+    settings.setValue("audio/microphoneGain", microphoneGainSlider_->value());
+    settings.setValue("audio/outputGain", outputGainSlider_->value());
 }
 
 void MainWindow::startAudio()
