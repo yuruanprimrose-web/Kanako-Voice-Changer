@@ -43,6 +43,7 @@ bool AudioEngine::start(PaDeviceIndex inputDevice, PaDeviceIndex outputDevice, Q
     };
 
     PaError lastError = paInvalidSampleRate;
+    double openedSampleRate = 0.0;
     for (std::size_t i = 0; i < candidateRates.size(); ++i) {
         const double sampleRate = candidateRates[i];
         if (sampleRate <= 0.0) continue;
@@ -73,7 +74,10 @@ bool AudioEngine::start(PaDeviceIndex inputDevice, PaDeviceIndex outputDevice, Q
             &AudioEngine::audioCallback,
             this);
 
-        if (lastError == paNoError) break;
+        if (lastError == paNoError) {
+            openedSampleRate = sampleRate;
+            break;
+        }
         stream_ = nullptr;
     }
 
@@ -84,6 +88,8 @@ bool AudioEngine::start(PaDeviceIndex inputDevice, PaDeviceIndex outputDevice, Q
         }
         return false;
     }
+
+    processor_.prepare(openedSampleRate);
 
     const PaError startResult = Pa_StartStream(stream_);
     if (startResult != paNoError) {
@@ -117,6 +123,11 @@ bool AudioEngine::isRunning() const
     return stream_ != nullptr && Pa_IsStreamActive(stream_) == 1;
 }
 
+void AudioEngine::setPreset(VoiceProcessor::Preset preset)
+{
+    processor_.setPreset(preset);
+}
+
 float AudioEngine::inputLevel() const
 {
     return inputLevel_.load(std::memory_order_relaxed);
@@ -136,10 +147,11 @@ int AudioEngine::audioCallback(
 
     if (outputSamples == nullptr) return paContinue;
 
+    engine->processor_.process(inputSamples, outputSamples, frameCount);
+
     double sumSquares = 0.0;
     for (unsigned long i = 0; i < frameCount; ++i) {
         const float sample = inputSamples != nullptr ? inputSamples[i] : 0.0F;
-        outputSamples[i] = sample;
         sumSquares += static_cast<double>(sample) * static_cast<double>(sample);
     }
 
