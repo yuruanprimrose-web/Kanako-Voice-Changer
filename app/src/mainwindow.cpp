@@ -412,6 +412,9 @@ void MainWindow::startAudio()
 void MainWindow::stopAudio()
 {
     if (audioEngine_.isRecording()) stopRecording();
+    const bool virtualMicWasActive = audioEngine_.isVirtualMicActive();
+    const auto virtualMicDropped = audioEngine_.virtualMicDroppedSamples();
+    const auto virtualMicUnderflow = audioEngine_.virtualMicUnderflowSamples();
     meterTimer_->stop();
     audioEngine_.stop();
     inputMeter_->setValue(0);
@@ -423,7 +426,13 @@ void MainWindow::stopAudio()
                              && outputDeviceCombo_->currentData().isValid());
     stopButton_->setEnabled(false);
     recordButton_->setEnabled(false);
-    setAudioStatus("Voice processing stopped.");
+    if (virtualMicWasActive) {
+        setAudioStatus(QString("Voice processing stopped. Virtual mic buffer: %1 dropped samples, %2 underflow samples (silence).")
+                           .arg(virtualMicDropped).arg(virtualMicUnderflow),
+                       virtualMicDropped > 0);
+    } else {
+        setAudioStatus("Voice processing stopped.");
+    }
 }
 
 void MainWindow::startRecording()
