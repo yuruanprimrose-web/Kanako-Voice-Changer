@@ -17,8 +17,8 @@
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 {
     setWindowTitle("Kanako Voice Changer");
-    setMinimumSize(680, 650);
-    resize(800, 720);
+    setMinimumSize(700, 760);
+    resize(820, 850);
     setStyleSheet(R"(
         QMainWindow { background: #10131b; }
         QWidget { color: #edf0f7; font-family: "Segoe UI"; font-size: 10pt; }
@@ -71,6 +71,39 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     presetCombo_->addItem("Female-style", "female");
     presetCombo_->addItem("Male-style", "male");
     presetLayout->addRow("Choose your voice", presetCombo_);
+
+    auto *toneGroup = new QGroupBox("VOICE TONE TUNING", central);
+    auto *toneLayout = new QFormLayout(toneGroup);
+    pitchSlider_ = new QSlider(Qt::Horizontal, toneGroup);
+    pitchSlider_->setObjectName("pitchToneSlider");
+    pitchSlider_->setRange(-120, 120);
+    pitchSlider_->setSingleStep(1);
+    pitchSlider_->setValue(0);
+    pitchValue_ = new QLabel("0.0 st", toneGroup);
+    auto *pitchRow = new QWidget(toneGroup);
+    auto *pitchRowLayout = new QHBoxLayout(pitchRow);
+    pitchRowLayout->setContentsMargins(0, 0, 0, 0);
+    pitchRowLayout->addWidget(pitchSlider_, 1);
+    pitchRowLayout->addWidget(pitchValue_);
+    toneLayout->addRow("Pitch", pitchRow);
+
+    formantSlider_ = new QSlider(Qt::Horizontal, toneGroup);
+    formantSlider_->setObjectName("formantToneSlider");
+    formantSlider_->setRange(-60, 60);
+    formantSlider_->setSingleStep(1);
+    formantSlider_->setValue(0);
+    formantValue_ = new QLabel("0.0 st", toneGroup);
+    auto *formantRow = new QWidget(toneGroup);
+    auto *formantRowLayout = new QHBoxLayout(formantRow);
+    formantRowLayout->setContentsMargins(0, 0, 0, 0);
+    formantRowLayout->addWidget(formantSlider_, 1);
+    formantRowLayout->addWidget(formantValue_);
+    toneLayout->addRow("Formant / vocal character", formantRow);
+
+    auto *toneNote = new QLabel("Start with a preset, then fine-tune pitch and vocal character. Small adjustments usually sound more natural.", toneGroup);
+    toneNote->setObjectName("helperText");
+    toneNote->setWordWrap(true);
+    toneLayout->addRow(toneNote);
 
     auto *gainGroup = new QGroupBox("INPUT & OUTPUT LEVELS", central);
     auto *gainLayout = new QFormLayout(gainGroup);
@@ -142,6 +175,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     rootLayout->addWidget(subtitle);
     rootLayout->addWidget(deviceGroup);
     rootLayout->addWidget(presetGroup);
+    rootLayout->addWidget(toneGroup);
     rootLayout->addWidget(gainGroup);
     rootLayout->addWidget(meterLabel);
     rootLayout->addWidget(inputMeter_);
@@ -152,9 +186,29 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     setCentralWidget(central);
 
     connect(presetCombo_, qOverload<int>(&QComboBox::currentIndexChanged), this, [this](int index) {
-        audioEngine_.setPreset(static_cast<VoiceProcessor::Preset>(index));
+        const int pitch = index == 1 ? 20 : (index == 2 ? -30 : 0);
+        const int formant = index == 1 ? 10 : (index == 2 ? -15 : 0);
+        {
+            const QSignalBlocker pitchBlock(pitchSlider_);
+            const QSignalBlocker formantBlock(formantSlider_);
+            pitchSlider_->setValue(pitch);
+            formantSlider_->setValue(formant);
+        }
+        audioEngine_.setVoiceTone(static_cast<float>(pitch) / 10.0F, static_cast<float>(formant) / 10.0F);
+        pitchValue_->setText(QString("%1 st").arg(static_cast<double>(pitch) / 10.0, 0, 'f', 1));
+        formantValue_->setText(QString("%1 st").arg(static_cast<double>(formant) / 10.0, 0, 'f', 1));
         saveSettings();
     });
+    const auto updateTone = [this]() {
+        const int pitch = pitchSlider_->value();
+        const int formant = formantSlider_->value();
+        audioEngine_.setVoiceTone(static_cast<float>(pitch) / 10.0F, static_cast<float>(formant) / 10.0F);
+        pitchValue_->setText(QString("%1 st").arg(static_cast<double>(pitch) / 10.0, 0, 'f', 1));
+        formantValue_->setText(QString("%1 st").arg(static_cast<double>(formant) / 10.0, 0, 'f', 1));
+        saveSettings();
+    };
+    connect(pitchSlider_, &QSlider::valueChanged, this, [updateTone](int) { updateTone(); });
+    connect(formantSlider_, &QSlider::valueChanged, this, [updateTone](int) { updateTone(); });
     connect(microphoneGainSlider_, &QSlider::valueChanged, this, [this](int value) {
         audioEngine_.setMicrophoneGain(static_cast<float>(value) / 100.0F);
         microphoneGainValue_->setText(QString("%1%").arg(value));
@@ -238,11 +292,25 @@ void MainWindow::restoreSettings()
     const int inputIndex = inputDeviceCombo_->findText(settings.value("audio/inputDevice").toString());
     const int outputIndex = outputDeviceCombo_->findText(settings.value("audio/outputDevice").toString());
     const int presetIndex = presetCombo_->findData(settings.value("audio/voicePreset", "neutral"));
+    const int defaultPitch = presetIndex == 1 ? 20 : (presetIndex == 2 ? -30 : 0);
+    const int defaultFormant = presetIndex == 1 ? 10 : (presetIndex == 2 ? -15 : 0);
+    const int pitch = settings.value("audio/pitchTenths", defaultPitch).toInt();
+    const int formant = settings.value("audio/formantTenths", defaultFormant).toInt();
     const int microphoneGain = settings.value("audio/microphoneGain", 100).toInt();
     const int outputGain = settings.value("audio/outputGain", 100).toInt();
     if (inputIndex >= 0) inputDeviceCombo_->setCurrentIndex(inputIndex);
     if (outputIndex >= 0) outputDeviceCombo_->setCurrentIndex(outputIndex);
     if (presetIndex >= 0) presetCombo_->setCurrentIndex(presetIndex);
+    {
+        const QSignalBlocker pitchBlock(pitchSlider_);
+        const QSignalBlocker formantBlock(formantSlider_);
+        pitchSlider_->setValue(qBound(-120, pitch, 120));
+        formantSlider_->setValue(qBound(-60, formant, 60));
+    }
+    audioEngine_.setVoiceTone(static_cast<float>(pitchSlider_->value()) / 10.0F,
+                              static_cast<float>(formantSlider_->value()) / 10.0F);
+    pitchValue_->setText(QString("%1 st").arg(static_cast<double>(pitchSlider_->value()) / 10.0, 0, 'f', 1));
+    formantValue_->setText(QString("%1 st").arg(static_cast<double>(formantSlider_->value()) / 10.0, 0, 'f', 1));
     microphoneGainSlider_->setValue(qBound(0, microphoneGain, 300));
     outputGainSlider_->setValue(qBound(0, outputGain, 300));
     audioEngine_.setMicrophoneGain(static_cast<float>(microphoneGainSlider_->value()) / 100.0F);
@@ -259,6 +327,8 @@ void MainWindow::saveSettings()
     if (outputDeviceCombo_->currentData().isValid())
         settings.setValue("audio/outputDevice", outputDeviceCombo_->currentText());
     settings.setValue("audio/voicePreset", presetCombo_->currentData().toString());
+    settings.setValue("audio/pitchTenths", pitchSlider_->value());
+    settings.setValue("audio/formantTenths", formantSlider_->value());
     settings.setValue("audio/microphoneGain", microphoneGainSlider_->value());
     settings.setValue("audio/outputGain", outputGainSlider_->value());
 }
