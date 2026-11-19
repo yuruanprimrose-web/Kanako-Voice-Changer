@@ -26,6 +26,7 @@ private:
     AudioEngine audioEngine_;
     QComboBox *inputDeviceCombo_ = nullptr;
     QComboBox *outputDeviceCombo_ = nullptr;
+    QComboBox *presetCombo_ = nullptr;
     QLabel *audioStatusLabel_ = nullptr;
     QProgressBar *inputMeter_ = nullptr;
     QPushButton *startButton_ = nullptr;
