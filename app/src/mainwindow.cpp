@@ -70,6 +70,12 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     virtualMicDeviceCombo_ = new QComboBox(deviceGroup);
     virtualMicDeviceCombo_->setObjectName("virtualMicDeviceCombo");
     deviceLayout->addRow("Virtual microphone", virtualMicDeviceCombo_);
+    auto *virtualMicNote = new QLabel(
+        "Optional: install VB-CABLE first. Kanako sends audio to CABLE Input; choose CABLE Output as the microphone in Discord, Zoom, or OBS.",
+        deviceGroup);
+    virtualMicNote->setObjectName("helperText");
+    virtualMicNote->setWordWrap(true);
+    deviceLayout->addRow(virtualMicNote);
 
     auto *presetGroup = new QGroupBox("VOICE PRESET", central);
     auto *presetLayout = new QFormLayout(presetGroup);
