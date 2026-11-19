@@ -128,6 +128,16 @@ void AudioEngine::setPreset(VoiceProcessor::Preset preset)
     processor_.setPreset(preset);
 }
 
+void AudioEngine::setMicrophoneGain(float gain)
+{
+    microphoneGain_.store(std::clamp(gain, 0.0F, 4.0F), std::memory_order_relaxed);
+}
+
+void AudioEngine::setOutputGain(float gain)
+{
+    outputGain_.store(std::clamp(gain, 0.0F, 3.0F), std::memory_order_relaxed);
+}
+
 float AudioEngine::inputLevel() const
 {
     return inputLevel_.load(std::memory_order_relaxed);
@@ -147,7 +157,23 @@ int AudioEngine::audioCallback(
 
     if (outputSamples == nullptr) return paContinue;
 
-    engine->processor_.process(inputSamples, outputSamples, frameCount);
+    const float micGain = engine->microphoneGain_.load(std::memory_order_relaxed);
+    const float outputGain = engine->outputGain_.load(std::memory_order_relaxed);
+    engine->processor_.process(inputSamples, outputSamples, frameCount, micGain);
+
+    // Smoothly limit peaks above -0.9 full scale to reduce harsh digital clipping.
+    constexpr float limitStart = 0.90F;
+    constexpr float limitRange = 0.10F;
+    for (unsigned long i = 0; i < frameCount; ++i) {
+        const float amplified = outputSamples[i] * outputGain;
+        const float magnitude = std::abs(amplified);
+        if (magnitude > limitStart) {
+            const float limited = limitStart + limitRange * std::tanh((magnitude - limitStart) / limitRange);
+            outputSamples[i] = std::copysign(limited, amplified);
+        } else {
+            outputSamples[i] = amplified;
+        }
+    }
 
     double sumSquares = 0.0;
     for (unsigned long i = 0; i < frameCount; ++i) {
