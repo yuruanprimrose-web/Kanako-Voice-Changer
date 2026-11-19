@@ -44,7 +44,7 @@ qt_add_executable(KanakoVoiceChanger WIN32
     app/src/mainwindow.cpp
     app/src/mainwindow.h
 )
-target_link_libraries(KanakoVoiceChanger PRIVATE Qt6::Widgets ${KANAKO_PORTAUDIO_TARGET})
+target_link_libraries(KanakoVoiceChanger PRIVATE Qt6::Widgets ${KANAKO_PORTAUDIO_TARGET} kanako_voice_engine)
 target_include_directories(KanakoVoiceChanger PRIVATE app/src)
 if(MSVC)
     target_compile_options(KanakoVoiceChanger PRIVATE /W4 /permissive-)
