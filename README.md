@@ -1,59 +1,51 @@
 # Kanako Voice Changer
 
-Kanako Voice Changer is a planned standalone Windows desktop application for real-time voice changing. The goal is to provide selectable female and male voice presets in one integrated Kanako application, without a separate client/demo application, paid API, subscription, or premium feature lock.
+Kanako is being developed as one integrated Windows desktop voice changer. The goal is to let a user select built-in female-style or male-style voice effects and process microphone audio locally.
 
-> **Project status: Initial repository setup.** This repository currently contains project documentation and structure only. A working audio engine, voice models, installer, and runtime tests have not yet been added or verified.
+## Product commitments
 
-## Project goals
+- One Kanako application — no separate Voice Changer Client Demo.
+- Non-AI digital signal processing for the initial voice presets.
+- No paid cloud API, subscription, or premium feature lock.
+- Local microphone processing; no voice upload.
+- No copied proprietary VoiceWave code, assets, or binaries.
+- Free and open-source Kanako source under the MIT License.
 
-- One Windows application named **Kanako Voice Changer**.
-- Selectable female and male voice presets.
-- Real-time microphone processing, with clear input/output device selection.
-- A usable audio-level meter and reliable start/stop controls.
-- Local processing by default; no paid cloud voice API.
-- No subscription or premium-locked features.
-- A professional installer and clear installation/uninstallation experience.
-- Transparent dependency and model licensing.
+## Current development status
+
+The repository now contains the initial Qt 6 desktop window source, CMake configuration, Windows CI build workflow, and PortAudio device enumeration code.
+
+**This is not a usable voice changer yet.** The first code milestone is only a development shell. Live microphone capture/playback, audio meters, pitch/formant processing, real voice presets, installer, and release tests are still pending. The Start button and preset selector are intentionally disabled until the real audio pipeline is implemented.
+
+The Windows CI workflow is intended to compile the current source on GitHub Actions. A successful build must be confirmed from an actual workflow run before it is reported as PASS.
+
+## Planned technology
+
+- C++17 or later
+- Qt 6 Widgets for the integrated desktop UI
+- CMake for repeatable builds
+- PortAudio for audio device access and real-time input/output
+- Signalsmith Stretch for pitch/time shifting and formant compensation
+
+Exact dependency versions and redistribution notices must be pinned and checked before packaging. See [the architecture decision](docs/ARCHITECTURE.md), [roadmap](docs/ROADMAP.md), and [third-party license inventory](docs/THIRD_PARTY_LICENSES.md).
+
+## Build direction
+
+The initial Windows build is configured for Visual Studio 2022 x64 and Qt 6.8.3. See the GitHub Actions workflow at `.github/workflows/windows-build.yml`. A local developer setup guide will be added after the first CI build is confirmed.
 
 ## Repository layout
 
-- `app/` — desktop application and user interface.
-- `audio/` — audio capture, playback, routing, and device handling.
-- `voice-engine/` — voice conversion and inference integration.
-- `voice-models/` — model manifests and download/install metadata. Large model binaries should not be committed unless their licenses and distribution terms permit it.
-- `soundboard/` — optional soundboard functionality.
-- `effects/` — optional audio effects.
-- `drivers/` — virtual audio driver integration notes and installer assets, if required.
-- `installer/` — Windows packaging and installer configuration.
-- `tests/` — automated and manual test plans.
-- `docs/` — architecture, setup, licensing, and release documentation.
-
-## Development principles
-
-1. Do not represent a feature as complete until its implementation and tests have been verified.
-2. Prefer free, locally runnable dependencies; review each dependency and model license before use or redistribution.
-3. Keep the voice engine integrated behind the Kanako application. Do not ship a separate demo/client product.
-4. Do not bundle third-party binaries, models, or drivers without checking their redistribution terms.
-5. Keep user recordings and microphone audio local unless the user explicitly chooses otherwise.
-6. Do not change voice-processing quality settings or add hidden paid dependencies.
-
-## Current status
-
-| Area | Status |
-|---|---|
-| Public GitHub repository | Set up |
-| Project overview and documentation | Initial setup |
-| Desktop UI | Not implemented/verified in this repository |
-| Audio capture and routing | Not implemented/verified |
-| Voice conversion engine | Not implemented/verified |
-| Female/male voice presets | Not implemented/verified |
-| Windows installer | Not implemented/verified |
-| Automated build and tests | Not implemented/verified |
-
-## Next steps
-
-See [the roadmap](docs/ROADMAP.md) and [architecture proposal](docs/ARCHITECTURE.md). The implementation stack and exact feature scope must be confirmed before adding engine dependencies and downloadable model assets.
+- `app/` — integrated desktop application source
+- `audio/` — audio pipeline and device handling
+- `voice-engine/` — non-AI DSP processing
+- `voice-models/` — reserved; no AI models are planned for the initial product
+- `soundboard/` — optional soundboard feature
+- `effects/` — audio effects and presets
+- `drivers/` — optional driver integration, subject to licensing
+- `installer/` — Windows packaging
+- `tests/` — automated and manual test assets
+- `docs/` — architecture, roadmap, testing, and license records
 
 ## License
 
-No software license has been added yet. Public visibility does not by itself grant permission to reuse, modify, or redistribute this code. A license will be selected and added before the project is presented as open source.
+Kanako's own source is MIT licensed. Third-party components retain their own licenses; see [LICENSE](LICENSE) and [docs/THIRD_PARTY_LICENSES.md](docs/THIRD_PARTY_LICENSES.md).
