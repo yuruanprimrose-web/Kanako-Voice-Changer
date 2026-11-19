@@ -1,6 +1,9 @@
 #include "mainwindow.h"
 #include <portaudio.h>
 #include <QComboBox>
+#include <QDateTime>
+#include <QDir>
+#include <QFileDialog>
 #include <QFormLayout>
 #include <QGroupBox>
 #include <QHBoxLayout>
@@ -34,6 +37,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
         QPushButton#startButton { background: #6855d9; border-color: #7868e4; color: white; }
         QPushButton#startButton:hover { background: #7968e9; }
         QPushButton#stopButton { background: #672f3b; border-color: #8b4656; }
+        QPushButton#recordButton { background: #a83245; border-color: #c34b5e; color: white; }
         QSlider::groove:horizontal { height: 7px; background: #30394b; border-radius: 3px; }
         QSlider::sub-page:horizontal { background: #6855d9; border-radius: 3px; }
         QSlider::handle:horizontal { background: #ffffff; border: 2px solid #6855d9; width: 16px; margin: -6px 0; border-radius: 9px; }
@@ -165,6 +169,24 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     buttonLayout->addWidget(startButton_, 2);
     buttonLayout->addWidget(stopButton_, 1);
 
+    auto *recordGroup = new QGroupBox("VOICE RECORDING", central);
+    auto *recordLayout = new QVBoxLayout(recordGroup);
+    auto *recordButtons = new QHBoxLayout();
+    recordButton_ = new QPushButton("Record WAV", recordGroup);
+    recordButton_->setObjectName("recordButton");
+    recordButton_->setEnabled(false);
+    pauseRecordingButton_ = new QPushButton("Pause", recordGroup);
+    pauseRecordingButton_->setEnabled(false);
+    stopRecordingButton_ = new QPushButton("Stop recording", recordGroup);
+    stopRecordingButton_->setEnabled(false);
+    recordButtons->addWidget(recordButton_);
+    recordButtons->addWidget(pauseRecordingButton_);
+    recordButtons->addWidget(stopRecordingButton_);
+    recordingStatusLabel_ = new QLabel("Ready to record processed voice (WAV)", recordGroup);
+    recordingStatusLabel_->setObjectName("helperText");
+    recordLayout->addLayout(recordButtons);
+    recordLayout->addWidget(recordingStatusLabel_);
+
     auto *note = new QLabel(
         "Tip: Use headphones to prevent feedback. Voice presets are local DSP effects; the final sound depends on your microphone and voice.",
         central);
@@ -181,6 +203,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     rootLayout->addWidget(inputMeter_);
     rootLayout->addWidget(audioStatusLabel_);
     rootLayout->addLayout(buttonLayout);
+    rootLayout->addWidget(recordGroup);
     rootLayout->addStretch();
     rootLayout->addWidget(note);
     setCentralWidget(central);
@@ -228,8 +251,14 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     });
     connect(startButton_, &QPushButton::clicked, this, &MainWindow::startAudio);
     connect(stopButton_, &QPushButton::clicked, this, &MainWindow::stopAudio);
+    connect(recordButton_, &QPushButton::clicked, this, &MainWindow::startRecording);
+    connect(pauseRecordingButton_, &QPushButton::clicked, this, &MainWindow::pauseOrResumeRecording);
+    connect(stopRecordingButton_, &QPushButton::clicked, this, &MainWindow::stopRecording);
     meterTimer_ = new QTimer(this);
     meterTimer_->setInterval(33);
+    recordingTimer_ = new QTimer(this);
+    recordingTimer_->setInterval(1000);
+    connect(recordingTimer_, &QTimer::timeout, this, &MainWindow::updateRecordingTimer);
     connect(meterTimer_, &QTimer::timeout, this, &MainWindow::updateInputMeter);
     initializeAudioDevices();
 }
@@ -237,6 +266,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 MainWindow::~MainWindow()
 {
     meterTimer_->stop();
+    recordingTimer_->stop();
     audioEngine_.stop();
     if (portAudioInitialized_) Pa_Terminate();
 }
@@ -351,12 +381,14 @@ void MainWindow::startAudio()
     refreshDevicesButton_->setEnabled(false);
     startButton_->setEnabled(false);
     stopButton_->setEnabled(true);
+    recordButton_->setEnabled(true);
     meterTimer_->start();
     setAudioStatus("Voice processing is running. Use headphones to prevent feedback.");
 }
 
 void MainWindow::stopAudio()
 {
+    if (audioEngine_.isRecording()) stopRecording();
     meterTimer_->stop();
     audioEngine_.stop();
     inputMeter_->setValue(0);
@@ -366,7 +398,77 @@ void MainWindow::stopAudio()
     startButton_->setEnabled(inputDeviceCombo_->currentData().isValid()
                              && outputDeviceCombo_->currentData().isValid());
     stopButton_->setEnabled(false);
+    recordButton_->setEnabled(false);
     setAudioStatus("Voice processing stopped.");
+}
+
+void MainWindow::startRecording()
+{
+    if (!audioEngine_.isRunning()) {
+        setAudioStatus("Start the voice changer before recording.", true);
+        return;
+    }
+    const QString defaultName = QDir::homePath() + "/Kanako Recording " +
+                                QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss") + ".wav";
+    const QString path = QFileDialog::getSaveFileName(this, "Save Kanako recording", defaultName,
+                                                       "WAV audio (*.wav)");
+    if (path.isEmpty()) return;
+    QString error;
+    if (!audioEngine_.startRecording(path, &error)) {
+        setAudioStatus(error, true);
+        return;
+    }
+    recordingSeconds_ = 0;
+    recordingStatusLabel_->setText("Recording processed voice • 00:00");
+    recordButton_->setEnabled(false);
+    pauseRecordingButton_->setEnabled(true);
+    pauseRecordingButton_->setText("Pause");
+    stopRecordingButton_->setEnabled(true);
+    recordingTimer_->start();
+    setAudioStatus("Recording started. Your processed voice is being saved as WAV.");
+}
+
+void MainWindow::pauseOrResumeRecording()
+{
+    if (!audioEngine_.isRecording()) return;
+    if (audioEngine_.isRecordingPaused()) {
+        audioEngine_.resumeRecording();
+        pauseRecordingButton_->setText("Pause");
+        recordingStatusLabel_->setText("Recording processed voice • resumed");
+    } else {
+        audioEngine_.pauseRecording();
+        pauseRecordingButton_->setText("Resume");
+        recordingStatusLabel_->setText("Recording paused");
+    }
+}
+
+void MainWindow::stopRecording()
+{
+    if (!audioEngine_.isRecording()) return;
+    recordingTimer_->stop();
+    const auto dropped = audioEngine_.droppedRecordingSamples();
+    audioEngine_.stopRecording();
+    recordButton_->setEnabled(audioEngine_.isRunning());
+    pauseRecordingButton_->setEnabled(false);
+    pauseRecordingButton_->setText("Pause");
+    stopRecordingButton_->setEnabled(false);
+    recordingStatusLabel_->setText(QString("Recording saved • %1:%2")
+        .arg(recordingSeconds_ / 60, 2, 10, QChar('0'))
+        .arg(recordingSeconds_ % 60, 2, 10, QChar('0')));
+    if (dropped > 0) {
+        setAudioStatus(QString("Recording saved, but %1 audio samples were dropped because the disk could not keep up.").arg(dropped), true);
+    } else {
+        setAudioStatus("Recording saved successfully as a WAV file.");
+    }
+}
+
+void MainWindow::updateRecordingTimer()
+{
+    if (!audioEngine_.isRecording() || audioEngine_.isRecordingPaused()) return;
+    ++recordingSeconds_;
+    recordingStatusLabel_->setText(QString("Recording processed voice • %1:%2")
+        .arg(recordingSeconds_ / 60, 2, 10, QChar('0'))
+        .arg(recordingSeconds_ % 60, 2, 10, QChar('0')));
 }
 
 void MainWindow::updateInputMeter()
