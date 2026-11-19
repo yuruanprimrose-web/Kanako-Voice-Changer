@@ -18,6 +18,8 @@ public:
 private:
     void initializeAudioDevices();
     void populateDeviceLists();
+    void restoreSettings();
+    void saveSettings();
     void startAudio();
     void stopAudio();
     void updateInputMeter();
@@ -29,6 +31,7 @@ private:
     QComboBox *presetCombo_ = nullptr;
     QLabel *audioStatusLabel_ = nullptr;
     QProgressBar *inputMeter_ = nullptr;
+    QPushButton *refreshDevicesButton_ = nullptr;
     QPushButton *startButton_ = nullptr;
     QPushButton *stopButton_ = nullptr;
     QTimer *meterTimer_ = nullptr;
