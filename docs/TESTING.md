@@ -17,7 +17,20 @@ No test results are claimed by this document. Record actual environment details,
 - [ ] Input level meter responds to speech.
 - [ ] Device unplug/replug is handled without crashing.
 
-### Recording diagnostics
+### Virtual microphone prototype (VB-CABLE)
+
+- [ ] Install the official VB-CABLE package using its administrator setup program; reboot as instructed by VB-Audio.
+- [ ] Confirm PortAudio lists "CABLE Input" as a playback device and Kanako lists it in the optional Virtual microphone selector.
+- [ ] Start Kanako with a physical microphone, physical speaker/headphones, and CABLE Input selected as the virtual microphone.
+- [ ] Confirm the physical speaker/headphones still receive the processed voice.
+- [ ] Confirm the Windows recording endpoint "CABLE Output" receives the same processed voice.
+- [ ] Confirm Discord can select CABLE Output and receive intelligible processed speech.
+- [ ] Repeat with Zoom and OBS; test YouTube/Facebook workflows separately.
+- [ ] Run a 30-minute test and check for dropouts, silence, buffer overflow/underflow, and device recovery.
+- [ ] Stop Kanako and verify both output streams close cleanly.
+- [ ] Uninstall VB-CABLE using its official uninstaller and reboot as instructed; confirm Kanako falls back to physical output without crashing.
+
+These are pending manual tests. A successful CI build or synthetic buffer test does not prove that a real Windows virtual microphone works.
 - [ ] Start Recording begins capture.
 - [ ] Stop Recording ends capture and finalizes a valid WAV.
 - [ ] Play Recording plays the saved WAV.
