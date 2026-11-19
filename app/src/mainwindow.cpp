@@ -17,8 +17,8 @@
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 {
     setWindowTitle("Kanako Voice Changer");
-    setMinimumSize(680, 520);
-    resize(780, 600);
+    setMinimumSize(680, 650);
+    resize(800, 720);
     setStyleSheet(R"(
         QMainWindow { background: #10131b; }
         QWidget { color: #edf0f7; font-family: "Segoe UI"; font-size: 10pt; }
