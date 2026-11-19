@@ -22,8 +22,9 @@ void VoiceProcessor::applyPreset(Preset preset)
 {
     switch (preset) {
     case Preset::Female:
-        stretch_.setTransposeSemitones(4.0F);
-        stretch_.setFormantSemitones(2.0F, true);
+        // A gentler shift keeps the female-style preset from sounding unnaturally high.
+        stretch_.setTransposeSemitones(2.0F);
+        stretch_.setFormantSemitones(1.0F, true);
         break;
     case Preset::Male:
         stretch_.setTransposeSemitones(-3.0F);
