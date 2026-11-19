@@ -54,5 +54,6 @@ private:
     QTimer *meterTimer_ = nullptr;
     QTimer *recordingTimer_ = nullptr;
     int recordingSeconds_ = 0;
+    QString recordingTempPath_;
     bool portAudioInitialized_ = false;
 };
