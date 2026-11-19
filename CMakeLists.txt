@@ -68,4 +68,8 @@ if(BUILD_TESTING)
     target_link_libraries(kanako_recorder_smoke_test PRIVATE Qt6::Core)
     target_include_directories(kanako_recorder_smoke_test PRIVATE app/src)
     add_test(NAME recorder_wav_smoke COMMAND kanako_recorder_smoke_test)
+
+    add_executable(kanako_audiofanout_test tests/audiofanoutbuffer_test.cpp)
+    target_include_directories(kanako_audiofanout_test PRIVATE app/src)
+    add_test(NAME audio_fanout_buffer COMMAND kanako_audiofanout_test)
 endif()
