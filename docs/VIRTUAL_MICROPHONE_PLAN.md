@@ -34,7 +34,8 @@ Constraints:
 - A simple output-device switch would route audio away from the user's speakers. Simultaneous virtual-mic and speaker monitoring needs an explicit output fan-out design and tests.
 - The actual package version, signing status, installer behavior, and current terms must be rechecked before implementation/distribution.
 
-Official product/download reference: https://vb-audio.com/Cable/\nOfficial licensing reference: https://vb-audio.com/Services/licensing.htm
+Official product/download reference: https://vb-audio.com/Cable/
+Official licensing reference: https://vb-audio.com/Services/licensing.htm
 
 ### Option B — Build a Kanako-owned Windows virtual audio driver using Microsoft's SYSVAD sample as a reference
 
