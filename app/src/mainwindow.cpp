@@ -10,6 +10,8 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QProgressBar>
+#include <QScrollArea>
+#include <QFrame>
 #include <QPushButton>
 #include <QSettings>
 #include <QSlider>
@@ -21,8 +23,8 @@
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 {
     setWindowTitle("Kanako Voice Changer");
-    setMinimumSize(700, 800);
-    resize(820, 920);
+    setMinimumSize(680, 560);
+    resize(820, 900);
     setStyleSheet(R"(
         QMainWindow { background: #10131b; }
         QWidget { color: #edf0f7; font-family: "Segoe UI"; font-size: 10pt; }
@@ -216,7 +218,21 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     rootLayout->addWidget(recordGroup);
     rootLayout->addStretch();
     rootLayout->addWidget(note);
-    setCentralWidget(central);
+
+    // Keep the full settings page scrollable on shorter displays.
+    auto *shell = new QWidget(this);
+    auto *shellLayout = new QVBoxLayout(shell);
+    shellLayout->setContentsMargins(0, 0, 0, 0);
+    shellLayout->setSpacing(0);
+    auto *scrollArea = new QScrollArea(shell);
+    scrollArea->setObjectName("mainScrollArea");
+    scrollArea->setWidgetResizable(true);
+    scrollArea->setFrameShape(QFrame::NoFrame);
+    scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    scrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    scrollArea->setWidget(central);
+    shellLayout->addWidget(scrollArea);
+    setCentralWidget(shell);
 
     connect(presetCombo_, qOverload<int>(&QComboBox::currentIndexChanged), this, [this](int index) {
         const int pitch = index == 1 ? 20 : (index == 2 ? -30 : 0);
