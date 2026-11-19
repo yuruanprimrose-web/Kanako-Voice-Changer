@@ -335,7 +335,7 @@ void MainWindow::restoreSettings()
     QSettings settings("Yuruan Primrose", "Kanako Voice Changer");
     const int inputIndex = inputDeviceCombo_->findText(settings.value("audio/inputDevice").toString());
     const int outputIndex = outputDeviceCombo_->findText(settings.value("audio/outputDevice").toString());
-    const int virtualIndex = virtualMicDeviceCombo_->findData(settings.value("audio/virtualMicDevice", static_cast<int>(paNoDevice)).toInt());
+    const int virtualIndex = virtualMicDeviceCombo_->findText(settings.value("audio/virtualMicDevice").toString());
     const int presetIndex = presetCombo_->findData(settings.value("audio/voicePreset", "neutral"));
     const int defaultPitch = presetIndex == 1 ? 20 : (presetIndex == 2 ? -30 : 0);
     const int defaultFormant = presetIndex == 1 ? 10 : (presetIndex == 2 ? -15 : 0);
@@ -372,7 +372,9 @@ void MainWindow::saveSettings()
         settings.setValue("audio/inputDevice", inputDeviceCombo_->currentText());
     if (outputDeviceCombo_->currentData().isValid())
         settings.setValue("audio/outputDevice", outputDeviceCombo_->currentText());
-    settings.setValue("audio/virtualMicDevice", virtualMicDeviceCombo_->currentData().toInt());
+    settings.setValue("audio/virtualMicDevice",
+        virtualMicDeviceCombo_->currentData().toInt() == static_cast<int>(paNoDevice)
+            ? QString() : virtualMicDeviceCombo_->currentText());
     settings.setValue("audio/voicePreset", presetCombo_->currentData().toString());
     settings.setValue("audio/pitchTenths", pitchSlider_->value());
     settings.setValue("audio/formantTenths", formantSlider_->value());
