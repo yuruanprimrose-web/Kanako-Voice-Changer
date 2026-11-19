@@ -1,6 +1,7 @@
 #pragma once
 
 #include <portaudio.h>
+#include "voiceprocessor.h"
 #include <QString>
 #include <atomic>
 
@@ -16,6 +17,7 @@ public:
     bool start(PaDeviceIndex inputDevice, PaDeviceIndex outputDevice, QString *errorMessage);
     void stop();
     bool isRunning() const;
+    void setPreset(VoiceProcessor::Preset preset);
     float inputLevel() const;
 
 private:
