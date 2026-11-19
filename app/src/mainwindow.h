@@ -7,6 +7,7 @@ class QComboBox;
 class QLabel;
 class QProgressBar;
 class QPushButton;
+class QSlider;
 class QTimer;
 
 class MainWindow final : public QMainWindow
@@ -29,6 +30,10 @@ private:
     QComboBox *inputDeviceCombo_ = nullptr;
     QComboBox *outputDeviceCombo_ = nullptr;
     QComboBox *presetCombo_ = nullptr;
+    QSlider *microphoneGainSlider_ = nullptr;
+    QSlider *outputGainSlider_ = nullptr;
+    QLabel *microphoneGainValue_ = nullptr;
+    QLabel *outputGainValue_ = nullptr;
     QLabel *audioStatusLabel_ = nullptr;
     QProgressBar *inputMeter_ = nullptr;
     QPushButton *refreshDevicesButton_ = nullptr;
