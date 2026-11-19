@@ -1,8 +1,13 @@
 #pragma once
+
+#include "audioengine.h"
 #include <QMainWindow>
+
 class QComboBox;
 class QLabel;
+class QProgressBar;
 class QPushButton;
+class QTimer;
 
 class MainWindow final : public QMainWindow
 {
@@ -13,11 +18,18 @@ public:
 private:
     void initializeAudioDevices();
     void populateDeviceLists();
+    void startAudio();
+    void stopAudio();
+    void updateInputMeter();
     void setAudioStatus(const QString &message, bool isError = false);
+
+    AudioEngine audioEngine_;
     QComboBox *inputDeviceCombo_ = nullptr;
     QComboBox *outputDeviceCombo_ = nullptr;
     QLabel *audioStatusLabel_ = nullptr;
-    QLabel *inputMeterLabel_ = nullptr;
+    QProgressBar *inputMeter_ = nullptr;
     QPushButton *startButton_ = nullptr;
+    QPushButton *stopButton_ = nullptr;
+    QTimer *meterTimer_ = nullptr;
     bool portAudioInitialized_ = false;
 };
