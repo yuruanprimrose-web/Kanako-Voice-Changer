@@ -34,7 +34,7 @@ public:
     float recordingPeakLevel() const;
 
 private:
-    static int virtualMicCallback(void *output, unsigned long frameCount,
+    static int virtualMicCallback(const void *input, void *output, unsigned long frameCount,
                                  const PaStreamCallbackTimeInfo *timeInfo,
                                  PaStreamCallbackFlags statusFlags, void *userData);
 
