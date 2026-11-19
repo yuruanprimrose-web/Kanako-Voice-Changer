@@ -298,12 +298,16 @@ void MainWindow::populateDeviceLists()
 {
     const QSignalBlocker inputSignals(inputDeviceCombo_);
     const QSignalBlocker outputSignals(outputDeviceCombo_);
+    const QSignalBlocker virtualSignals(virtualMicDeviceCombo_);
     inputDeviceCombo_->clear();
     outputDeviceCombo_->clear();
+    virtualMicDeviceCombo_->clear();
+    virtualMicDeviceCombo_->addItem("Disabled (optional)", static_cast<int>(paNoDevice));
     const PaDeviceIndex deviceCount = Pa_GetDeviceCount();
     if (deviceCount < 0) {
         inputDeviceCombo_->addItem("Audio devices unavailable");
         outputDeviceCombo_->addItem("Audio devices unavailable");
+        virtualMicDeviceCombo_->setItemText(0, "Not detected — install VB-CABLE");
         startButton_->setEnabled(false);
         return;
     }
@@ -320,6 +324,8 @@ void MainWindow::populateDeviceLists()
     }
     if (inputDeviceCombo_->count() == 0) inputDeviceCombo_->addItem("No microphone detected");
     if (outputDeviceCombo_->count() == 0) outputDeviceCombo_->addItem("No output device detected");
+    if (virtualMicDeviceCombo_->count() == 1)
+        virtualMicDeviceCombo_->setItemText(0, "Not detected — install VB-CABLE");
     startButton_->setEnabled(inputDeviceCombo_->currentData().isValid()
                              && outputDeviceCombo_->currentData().isValid());
 }
@@ -366,6 +372,7 @@ void MainWindow::saveSettings()
         settings.setValue("audio/inputDevice", inputDeviceCombo_->currentText());
     if (outputDeviceCombo_->currentData().isValid())
         settings.setValue("audio/outputDevice", outputDeviceCombo_->currentText());
+    settings.setValue("audio/virtualMicDevice", virtualMicDeviceCombo_->currentData().toInt());
     settings.setValue("audio/voicePreset", presetCombo_->currentData().toString());
     settings.setValue("audio/pitchTenths", pitchSlider_->value());
     settings.setValue("audio/formantTenths", formantSlider_->value());
@@ -382,12 +389,14 @@ void MainWindow::startAudio()
     QString errorMessage;
     const auto inputDevice = static_cast<PaDeviceIndex>(inputDeviceCombo_->currentData().toInt());
     const auto outputDevice = static_cast<PaDeviceIndex>(outputDeviceCombo_->currentData().toInt());
-    if (!audioEngine_.start(inputDevice, outputDevice, &errorMessage)) {
+    const auto virtualMicDevice = static_cast<PaDeviceIndex>(virtualMicDeviceCombo_->currentData().toInt());
+    if (!audioEngine_.start(inputDevice, outputDevice, virtualMicDevice, &errorMessage)) {
         setAudioStatus(errorMessage, true);
         return;
     }
     inputDeviceCombo_->setEnabled(false);
     outputDeviceCombo_->setEnabled(false);
+    virtualMicDeviceCombo_->setEnabled(false);
     refreshDevicesButton_->setEnabled(false);
     startButton_->setEnabled(false);
     stopButton_->setEnabled(true);
@@ -406,6 +415,7 @@ void MainWindow::stopAudio()
     inputMeter_->setValue(0);
     inputDeviceCombo_->setEnabled(true);
     outputDeviceCombo_->setEnabled(true);
+    virtualMicDeviceCombo_->setEnabled(true);
     refreshDevicesButton_->setEnabled(true);
     startButton_->setEnabled(inputDeviceCombo_->currentData().isValid()
                              && outputDeviceCombo_->currentData().isValid());
